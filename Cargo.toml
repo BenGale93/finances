@@ -13,8 +13,10 @@ sqlx = { version = "0.6.2", features = [ "runtime-tokio-rustls", "sqlite", "chro
 tokio = { version = "1", features = ["full"]}
 serde_json = "1.0.93"
 anyhow = "1.0.69"
-warp = "0.3.3"
 yew = { version = "0.20.0", features = ["csr"] }
 yew-router = "0.17.0"
 reqwasm = "0.5.0"
 wasm-bindgen-futures = "0.4.34"
+axum = {version = "0.6.8", features = ["macros"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing = "0.1"

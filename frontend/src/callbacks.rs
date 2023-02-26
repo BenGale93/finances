@@ -5,7 +5,7 @@ use yew::Callback;
 pub fn get_config(config_cb: Callback<Config>) {
     wasm_bindgen_futures::spawn_local(async move {
         loop {
-            let fetched_config = Request::get("http://localhost:5000/config")
+            let fetched_config = Request::get("/api/config")
                 .send()
                 .await
                 .unwrap()
@@ -21,7 +21,7 @@ pub fn get_config(config_cb: Callback<Config>) {
 pub fn get_accounts(accounts_cb: Callback<Vec<AccountSummary>>) {
     wasm_bindgen_futures::spawn_local(async move {
         loop {
-            let fetched_accounts = Request::get("http://localhost:5000/accounts")
+            let fetched_accounts = Request::get("/api/accounts")
                 .send()
                 .await
                 .unwrap()
@@ -37,11 +37,8 @@ pub fn get_accounts(accounts_cb: Callback<Vec<AccountSummary>>) {
 pub fn get_transactions(transactions_cb: Callback<Vec<Transaction>>) {
     wasm_bindgen_futures::spawn_local(async move {
         loop {
-            let transaction_endpoint = format!(
-                "http://localhost:5000/transactions?offset={x}&limit={y}",
-                x = 0,
-                y = 50
-            );
+            let transaction_endpoint =
+                format!("/api/transactions?offset={x}&limit={y}", x = 0, y = 50);
             let fetched_transactions = Request::get(&transaction_endpoint)
                 .send()
                 .await

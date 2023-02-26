@@ -1,14 +1,18 @@
-use std::{collections::HashMap, convert::Infallible};
+use std::{collections::HashMap, sync::Arc};
 
+use axum::{
+    extract::{Query, State},
+    Json,
+};
 use common::{AccountSummary, Config, ListOptions, Transaction};
 
-use crate::{ConfigDb, TransactionsDb};
+use crate::AppState;
 
 pub async fn list_transactions(
-    opts: ListOptions,
-    transactions_db: TransactionsDb,
-) -> Result<impl warp::Reply, Infallible> {
-    let transactions = transactions_db.lock().await;
+    Query(opts): Query<ListOptions>,
+    State(app_state): State<Arc<AppState>>,
+) -> Json<Vec<Transaction>> {
+    let transactions = app_state.transactions_db.lock().await;
     let transactions: Vec<Transaction> = transactions
         .clone()
         .into_iter()
@@ -16,13 +20,13 @@ pub async fn list_transactions(
         .skip(opts.offset.unwrap_or(0))
         .take(opts.limit.unwrap_or(usize::MAX))
         .collect();
-    Ok(warp::reply::json(&transactions))
+    Json(transactions)
 }
 
 pub async fn get_account_totals(
-    transactions_db: TransactionsDb,
-) -> Result<impl warp::Reply, Infallible> {
-    let transactions = transactions_db.lock().await;
+    State(app_state): State<Arc<AppState>>,
+) -> Json<Vec<AccountSummary>> {
+    let transactions = app_state.transactions_db.lock().await;
     let transactions: Vec<Transaction> = transactions.clone();
 
     let mut accounts: HashMap<String, f64> = HashMap::new();
@@ -38,12 +42,13 @@ pub async fn get_account_totals(
         })
         .collect();
     accounts.sort();
-    Ok(warp::reply::json(&accounts))
+    Json(accounts)
 }
 
-pub async fn get_config(config_db: ConfigDb) -> Result<impl warp::Reply, Infallible> {
-    let config = config_db.lock().await;
+#[axum::debug_handler]
+pub async fn get_config(State(app_state): State<Arc<AppState>>) -> Json<Config> {
+    let config = app_state.config_db.lock().await;
     let config: Config = config.clone();
 
-    Ok(warp::reply::json(&config))
+    Json(config)
 }

@@ -1,12 +1,12 @@
 use std::{collections::HashMap, convert::Infallible};
 
-use common::{AccountSummary, ListOptions, Transaction};
+use common::{AccountSummary, Config, ListOptions, Transaction};
 
-use crate::Transactions;
+use crate::{ConfigDb, TransactionsDb};
 
 pub async fn list_transactions(
     opts: ListOptions,
-    transactions_db: Transactions,
+    transactions_db: TransactionsDb,
 ) -> Result<impl warp::Reply, Infallible> {
     let transactions = transactions_db.lock().await;
     let transactions: Vec<Transaction> = transactions
@@ -20,7 +20,7 @@ pub async fn list_transactions(
 }
 
 pub async fn get_account_totals(
-    transactions_db: Transactions,
+    transactions_db: TransactionsDb,
 ) -> Result<impl warp::Reply, Infallible> {
     let transactions = transactions_db.lock().await;
     let transactions: Vec<Transaction> = transactions.clone();
@@ -39,4 +39,11 @@ pub async fn get_account_totals(
         .collect();
     accounts.sort();
     Ok(warp::reply::json(&accounts))
+}
+
+pub async fn get_config(config_db: ConfigDb) -> Result<impl warp::Reply, Infallible> {
+    let config = config_db.lock().await;
+    let config: Config = config.clone();
+
+    Ok(warp::reply::json(&config))
 }

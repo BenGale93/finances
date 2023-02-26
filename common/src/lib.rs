@@ -51,5 +51,36 @@ impl Ord for AccountSummary {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct Tags(HashMap<String, HashMap<String, Vec<String>>>);
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct Config {
+    budget: f64,
+    account_list: Vec<String>,
+    period_items: Vec<String>,
+    budget_items: Vec<String>,
+    tags: Tags,
+}
+
+impl Config {
+    pub const fn budget(&self) -> f64 {
+        self.budget
+    }
+
+    pub fn account_list(&self) -> &[String] {
+        self.account_list.as_ref()
+    }
+
+    pub fn period_items(&self) -> &[String] {
+        self.period_items.as_ref()
+    }
+
+    pub fn budget_items(&self) -> &[String] {
+        self.budget_items.as_ref()
+    }
+
+    pub const fn tags(&self) -> &Tags {
+        &self.tags
+    }
+}

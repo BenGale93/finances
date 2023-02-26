@@ -1,5 +1,6 @@
+use std::sync::Arc;
+
 use common::Transaction;
-use reqwasm::http::Request;
 use yew::prelude::*;
 
 #[derive(PartialEq, Properties)]
@@ -23,71 +24,29 @@ fn transaction_component(props: &TransactionComponentProps) -> Html {
     }
 }
 
-pub struct TransactionsComponent {
-    transactions: Option<Vec<Transaction>>,
+#[derive(PartialEq, Properties)]
+pub struct TransactionsComponentProps {
+    pub transactions: Arc<Vec<Transaction>>,
 }
-
-fn get_transactions(transactions_cb: Callback<Vec<Transaction>>) {
-    wasm_bindgen_futures::spawn_local(async move {
-        loop {
-            let transaction_endpoint = format!(
-                "http://localhost:5000/transactions?offset={x}&limit={y}",
-                x = 0,
-                y = 50
-            );
-            let fetched_transactions = Request::get(&transaction_endpoint)
-                .send()
-                .await
-                .unwrap()
-                .json()
-                .await
-                .unwrap();
-
-            transactions_cb.emit(fetched_transactions);
-        }
-    })
-}
-
-pub enum TransactionsMsg {
-    Load(Vec<Transaction>),
-}
+pub struct TransactionsComponent {}
 
 impl Component for TransactionsComponent {
-    type Message = TransactionsMsg;
-    type Properties = ();
+    type Message = ();
+    type Properties = TransactionsComponentProps;
 
-    fn create(ctx: &Context<Self>) -> Self {
-        let transactions_cb = ctx.link().callback(TransactionsMsg::Load);
-        get_transactions(transactions_cb);
-        Self { transactions: None }
+    fn create(_ctx: &Context<Self>) -> Self {
+        Self {}
     }
 
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
-        match msg {
-            TransactionsMsg::Load(t) => {
-                self.transactions = Some(t);
-            }
-        }
-        true
-    }
-
-    fn view(&self, _ctx: &Context<Self>) -> Html {
-        match &self.transactions {
-            Some(f) => f
-                .iter()
-                .map(|transaction| {
-                    html! {
-                    <TransactionComponent transaction={transaction.clone()}/>
-                    }
-                })
-                .collect(),
-            None => {
+    fn view(&self, ctx: &Context<Self>) -> Html {
+        ctx.props()
+            .transactions
+            .iter()
+            .map(|transaction| {
                 html! {
-                    <>
-                        {"Loading transactions"}
-                    </>
+                <TransactionComponent transaction={transaction.clone()}/>
                 }
-            }
-        }
+            })
+            .collect()
     }
 }

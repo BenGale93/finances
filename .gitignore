@@ -1,0 +1,8 @@
+/target
+justfile
+.env
+*.db
+*.sql
+*/dist/
+.vscode
+*.json

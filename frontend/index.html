@@ -1,0 +1,146 @@
+<html>
+  <head>
+    <title>My finances</title>
+    <style>
+      :root {
+        --bg-font: "Lucida Sans", "Gill Sans";
+    }
+
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        background-color: white;
+        text-align: center;
+        height: 100%;
+        margin: 0px, 30px, 0px;
+        color: black;
+        font-family: var(--bg-font);
+    }
+
+    .wrapper{
+        text-align: center;
+        margin: auto;
+        width: 80%;
+    }
+
+    h2 {
+        color: black;
+        margin: auto;
+        font-family: var(--bg-font);
+        font-size: 30px;
+        padding-top: 10px;
+        text-align: center;
+        /* Safari */
+        top: 0;
+        font-weight: normal;
+        display: inline
+    }
+
+    /* Header and navbar */
+    .topnav {
+        position: -webkit-sticky;
+        /* Safari */
+        position: sticky;
+        top: 0;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        background-color: rgba(255,255,255,.8)
+    }
+
+    .topnav a{
+        font-size: 20px;
+        color: black;
+        font-family: var(--bg-font);
+        display: inline;
+    }
+
+    .topnav a:link {
+        color: black;
+        background-color: transparent;
+        text-decoration: none;
+    }
+
+    .topnav a:hover {
+        color: gray;
+        background-color: transparent;
+        text-decoration: none;
+    }
+
+    .topnav a:active {
+        color: white;
+        background-color: transparent;
+        text-decoration: none;
+    }
+
+    .topnav li {
+        display: inline;
+        margin: auto;
+        padding: 15px;
+    }
+
+    /* Clear floats after the columns */
+    .row:after {
+        content: "";
+        display: table;
+        clear: both;
+    }
+
+    /* Account summary page formatting */
+    .column {
+        float: left;
+        padding: 10px;
+    }
+
+    .left {
+        width: 20%;
+    }
+
+    .right {
+        width: 80%;
+        float: left;
+    }
+
+    .info {
+        float:left;
+        width: fit-content;
+        padding: 0px 20px 0px;
+    }
+    .data {
+        font-size: 12px;
+        margin-left:auto;
+        margin-right:auto;
+    }
+
+    .accounts {
+        margin-left:auto;
+        margin-right:auto;
+    }
+
+    .accounts td {
+        text-align: right;
+    }
+
+    .accounts th {
+        text-align: left;
+    }
+
+    /* Balance History formatting */
+    .halves {
+        width: 50%;
+        float: left;
+        margin: auto;
+        padding: 0px 90px 0px;
+    }
+
+    .input_tran {
+        display:table;
+        margin: auto;
+    }
+
+    </style>
+  </head>
+  <body></body>
+</html>

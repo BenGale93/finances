@@ -2,7 +2,7 @@
 use std::{env, fs::read_to_string, net::SocketAddr, sync::Arc};
 
 use axum::{routing::get, Router};
-use sqlx::Connection;
+use sqlx::{sqlite::SqlitePoolOptions, Pool, Sqlite};
 use tokio::sync::Mutex;
 
 mod handlers;
@@ -13,13 +13,6 @@ pub type TransactionsDb = Arc<Mutex<Vec<Transaction>>>;
 
 pub type ConfigDb = Arc<Mutex<Config>>;
 
-pub async fn init_db(conn: &mut sqlx::SqliteConnection) -> anyhow::Result<TransactionsDb> {
-    let transactions = sqlx::query_as!(Transaction, "SELECT rowid as id, * from finances")
-        .fetch_all(conn)
-        .await?;
-    Ok(Arc::new(Mutex::new(transactions)))
-}
-
 pub fn load_config() -> anyhow::Result<ConfigDb> {
     let config_file = read_to_string("config.json")?;
     Ok(Arc::new(Mutex::new(serde_json::from_str(&config_file)?)))
@@ -28,7 +21,7 @@ pub fn load_config() -> anyhow::Result<ConfigDb> {
 #[derive(Clone)]
 pub struct AppState {
     pub config_db: ConfigDb,
-    pub transactions_db: TransactionsDb,
+    pub pool: Pool<Sqlite>,
 }
 
 #[tokio::main]
@@ -36,14 +29,14 @@ async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
     let db_url = env::var("DATABASE_URL")?;
 
-    let mut conn = sqlx::SqliteConnection::connect(&db_url).await?;
-    let transactions_db = init_db(&mut conn).await?;
+    let pool = SqlitePoolOptions::new()
+        .max_connections(5)
+        .connect(&db_url)
+        .await?;
+
     let config_db = load_config()?;
 
-    let state = Arc::new(AppState {
-        config_db,
-        transactions_db,
-    });
+    let state = Arc::new(AppState { config_db, pool });
 
     let app = Router::new()
         .route("/api/", get(root))

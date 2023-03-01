@@ -11,3 +11,4 @@ yew = {workspace = true}
 yew-router = {workspace = true}
 reqwasm = {workspace = true}
 wasm-bindgen-futures = {workspace = true}
+serde = {workspace = true}

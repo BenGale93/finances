@@ -4,7 +4,7 @@ use common::Config;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
-mod callbacks;
+mod api;
 mod home;
 
 use home::HomeComponent;

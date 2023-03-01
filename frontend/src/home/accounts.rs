@@ -9,8 +9,7 @@ struct AccountComponentProps {
 }
 
 #[function_component(AccountComponent)]
-fn account_component(props: &AccountComponentProps) -> Html {
-    let AccountComponentProps { account } = props;
+fn account_component(AccountComponentProps { account }: &AccountComponentProps) -> Html {
     let amount = account.amount;
     let total = format!("{amount:.2}");
     html! {
@@ -26,25 +25,16 @@ pub struct AccountsComponentProps {
     pub accounts: Arc<Vec<AccountSummary>>,
 }
 
-pub struct AccountSummaryComponent {}
-
-impl Component for AccountSummaryComponent {
-    type Message = ();
-    type Properties = AccountsComponentProps;
-
-    fn create(_ctx: &Context<Self>) -> Self {
-        Self {}
-    }
-
-    fn view(&self, ctx: &Context<Self>) -> Html {
-        ctx.props()
-            .accounts
-            .iter()
-            .map(|account| {
-                html! {
-                <AccountComponent account={account.clone()}/>
-                }
-            })
-            .collect()
-    }
+#[function_component(AccountsSummaryComponent)]
+pub fn accounts_summary_component(
+    AccountsComponentProps { accounts }: &AccountsComponentProps,
+) -> Html {
+    accounts
+        .iter()
+        .map(|account| {
+            html! {
+            <AccountComponent account={account.clone()}/>
+            }
+        })
+        .collect()
 }

@@ -126,18 +126,7 @@ impl Component for HomeComponent {
             </table>
             </div>
             <div class="column right">
-            <table>
-            <tr>
-                <th>{"Account"}</th>
-                <th>{"Date"}</th>
-                <th>{"Description"}</th>
-                <th>{"Amount"}</th>
-                <th>{"L1 Tag"}</th>
-                <th>{"L2 Tag"}</th>
-                <th>{"L3 Tag"}</th>
-            </tr>
             <TransactionsComponent />
-            </table>
             </div>
         </div>
         </div>

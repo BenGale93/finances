@@ -10,8 +10,8 @@ pub async fn get_accounts() -> Vec<AccountSummary> {
     fetch_data("/api/accounts").await
 }
 
-pub async fn get_transactions() -> Vec<Transaction> {
-    let transaction_endpoint = format!("/api/transactions?offset={x}&limit={y}", x = 0, y = 50);
+pub async fn get_transactions(offset: usize, limit: usize) -> Vec<Transaction> {
+    let transaction_endpoint = format!("/api/transactions?offset={offset}&limit={limit}");
     fetch_data(&transaction_endpoint).await
 }
 

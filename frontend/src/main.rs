@@ -1,6 +1,5 @@
 #![recursion_limit = "256"]
 
-use common::Config;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
@@ -15,14 +14,10 @@ pub enum Route {
     Home,
 }
 
-pub enum Msg {
-    Load(Config),
-}
-
 pub struct App {}
 
 impl Component for App {
-    type Message = Msg;
+    type Message = ();
     type Properties = ();
 
     fn create(_ctx: &Context<Self>) -> Self {

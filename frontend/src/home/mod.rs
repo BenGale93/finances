@@ -3,7 +3,7 @@ mod transactions;
 
 use std::sync::Arc;
 
-use common::{AccountSummary, Config};
+use common::{AccountSummary, ConfigOptions};
 use yew::prelude::*;
 
 use crate::{
@@ -17,15 +17,16 @@ pub struct HomeData {
 }
 
 pub enum HomeMsg {
+    Error,
     NeedUpdateConfig,
-    UpdateConfig(Config),
+    UpdateBudget(f64),
     NeedUpdateData,
     UpdateData(Vec<AccountSummary>),
 }
 
 pub struct HomeComponent {
     data: HomeData,
-    config: Option<Arc<Config>>,
+    budget: Option<f64>,
 }
 
 impl Component for HomeComponent {
@@ -38,7 +39,7 @@ impl Component for HomeComponent {
                 accounts: None,
                 total: None,
             },
-            config: None,
+            budget: None,
         };
 
         ctx.link().send_message(Self::Message::NeedUpdateData);
@@ -50,13 +51,19 @@ impl Component for HomeComponent {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         let mut should_render = false;
         match msg {
+            HomeMsg::Error => (),
             HomeMsg::NeedUpdateData => {
                 ctx.link()
                     .send_future(async move { HomeMsg::UpdateData(api::get_accounts().await) });
             }
             HomeMsg::NeedUpdateConfig => {
-                ctx.link()
-                    .send_future(async move { HomeMsg::UpdateConfig(api::get_config().await) });
+                ctx.link().send_future(async move {
+                    let budget_config = api::get_config("budget").await;
+                    match budget_config {
+                        ConfigOptions::Budget(b) => HomeMsg::UpdateBudget(b),
+                        _ => HomeMsg::Error,
+                    }
+                });
             }
             HomeMsg::UpdateData(accounts) => {
                 let total = accounts.iter().map(|a| a.amount).sum();
@@ -66,8 +73,8 @@ impl Component for HomeComponent {
                 };
                 should_render = true;
             }
-            HomeMsg::UpdateConfig(config) => {
-                self.config = Some(Arc::new(config));
+            HomeMsg::UpdateBudget(b) => {
+                self.budget = Some(b);
                 should_render = true;
             }
         }
@@ -85,8 +92,8 @@ impl Component for HomeComponent {
             None => return "".into(),
         };
 
-        let budget = match &self.config {
-            Some(c) => c.budget(),
+        let budget = match &self.budget {
+            Some(b) => b,
             None => return "".into(),
         };
 

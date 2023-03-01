@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{Query, State},
+    extract::{Path, Query, State},
+    http::StatusCode,
     Json,
 };
-use common::{AccountSummary, Config, ListOptions, Transaction};
+use common::{AccountSummary, ConfigOptions, ListOptions, Transaction};
 
-use crate::AppState;
+use crate::{AppState, Config};
 
 pub async fn list_transactions(
     Query(opts): Query<ListOptions>,
@@ -46,9 +47,20 @@ pub async fn get_account_totals(
     Json(accounts)
 }
 
-pub async fn get_config(State(app_state): State<Arc<AppState>>) -> Json<Config> {
+pub async fn get_config(
+    Path(key): Path<String>,
+    State(app_state): State<Arc<AppState>>,
+) -> Result<Json<ConfigOptions>, StatusCode> {
     let config = app_state.config_db.lock().await;
     let config: Config = config.clone();
+    let option = match key.as_str() {
+        "budget" => ConfigOptions::Budget(config.budget()),
+        "account_list" => ConfigOptions::AccountList(config.account_list().to_owned()),
+        "period_items" => ConfigOptions::PeriodItems(config.period_items().to_owned()),
+        "budget_items" => ConfigOptions::BudgetItems(config.period_items().to_owned()),
+        "tags" => ConfigOptions::Tags(config.tags().to_owned()),
+        _ => return Err(StatusCode::NOT_FOUND),
+    };
 
-    Json(config)
+    Ok(Json(option))
 }

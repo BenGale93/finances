@@ -1,8 +1,9 @@
-use common::{AccountSummary, Config, Transaction};
+use common::{AccountSummary, ConfigOptions, Transaction};
 use reqwasm::http::Request;
 
-pub async fn get_config() -> Config {
-    fetch_data("/api/config").await
+pub async fn get_config(key: &str) -> ConfigOptions {
+    let query = format!("api/config/{key}", key = key);
+    fetch_data(&query).await
 }
 
 pub async fn get_accounts() -> Vec<AccountSummary> {

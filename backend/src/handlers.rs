@@ -3,11 +3,12 @@ use std::sync::Arc;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
+    response::IntoResponse,
     Json,
 };
-use common::{AccountSummary, ConfigOptions, ListOptions, Transaction};
+use common::{AccountSummary, Config, ConfigOptions, ListOptions, Transaction};
 
-use crate::{AppState, Config};
+use crate::AppState;
 
 pub async fn list_transactions(
     Query(opts): Query<ListOptions>,
@@ -28,6 +29,44 @@ pub async fn list_transactions(
     .await
     .unwrap();
     Json(transactions)
+}
+
+#[axum::debug_handler]
+pub async fn create_transaction(
+    State(app_state): State<Arc<AppState>>,
+    Json(transaction): Json<Transaction>,
+) -> impl IntoResponse {
+    let mut conn = app_state.pool.acquire().await.unwrap();
+    let Transaction {
+        id: _,
+        account,
+        date,
+        description,
+        amount,
+        l1_tag,
+        l2_tag,
+        l3_tag,
+    } = transaction;
+
+    let id = sqlx::query!(
+        r#"
+        INSERT INTO finances ( account, date, description, amount, l1_tag, l2_tag, l3_tag)
+        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+        "#,
+        account,
+        date,
+        description,
+        amount,
+        l1_tag,
+        l2_tag,
+        l3_tag
+    )
+    .execute(&mut conn)
+    .await
+    .unwrap()
+    .last_insert_rowid();
+
+    (StatusCode::CREATED, Json(id))
 }
 
 pub async fn get_account_totals(
@@ -54,6 +93,7 @@ pub async fn get_config(
     let config = app_state.config_db.lock().await;
     let config: Config = config.clone();
     let option = match key.as_str() {
+        "all" => ConfigOptions::All(config),
         "budget" => ConfigOptions::Budget(config.budget()),
         "account_list" => ConfigOptions::AccountList(config.account_list().to_owned()),
         "period_items" => ConfigOptions::PeriodItems(config.period_items().to_owned()),

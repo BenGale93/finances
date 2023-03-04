@@ -20,3 +20,6 @@ wasm-bindgen-futures = "0.4.34"
 axum = {version = "0.6.8", features = ["macros"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing = "0.1"
+web-sys = {version = "0.3.61", features = ["HtmlInputElement"]}
+log = "0.4.6"
+wasm-logger = "0.2.0"

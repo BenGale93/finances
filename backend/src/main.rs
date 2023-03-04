@@ -2,46 +2,14 @@
 use std::{env, fs::read_to_string, net::SocketAddr, sync::Arc};
 
 use axum::{routing::get, Router};
-use serde::{Deserialize, Serialize};
 use sqlx::{sqlite::SqlitePoolOptions, Pool, Sqlite};
 use tokio::sync::Mutex;
 
 mod handlers;
 
-use common::{Tags, Transaction};
+use common::{Config, Transaction};
 
 pub type TransactionsDb = Arc<Mutex<Vec<Transaction>>>;
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct Config {
-    budget: f64,
-    account_list: Vec<String>,
-    period_items: Vec<String>,
-    budget_items: Vec<String>,
-    tags: Tags,
-}
-
-impl Config {
-    pub const fn budget(&self) -> f64 {
-        self.budget
-    }
-
-    pub fn account_list(&self) -> &[String] {
-        self.account_list.as_ref()
-    }
-
-    pub fn period_items(&self) -> &[String] {
-        self.period_items.as_ref()
-    }
-
-    pub fn budget_items(&self) -> &[String] {
-        self.budget_items.as_ref()
-    }
-
-    pub const fn tags(&self) -> &Tags {
-        &self.tags
-    }
-}
 
 pub type ConfigDb = Arc<Mutex<Config>>;
 
@@ -72,7 +40,10 @@ async fn main() -> anyhow::Result<()> {
 
     let app = Router::new()
         .route("/api/", get(root))
-        .route("/api/transactions", get(handlers::list_transactions))
+        .route(
+            "/api/transactions",
+            get(handlers::list_transactions).post(handlers::create_transaction),
+        )
         .route("/api/config/:key", get(handlers::get_config))
         .route("/api/accounts", get(handlers::get_account_totals))
         .with_state(state);

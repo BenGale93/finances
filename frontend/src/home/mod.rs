@@ -4,7 +4,10 @@ mod transactions;
 
 use std::sync::Arc;
 
-use common::{AccountSummary, ConfigOptions, Transaction};
+use anyhow::anyhow;
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
+use common::{AccountSummary, Config, ConfigOptions, Transaction};
+use serde::{Deserialize, Serialize};
 use yew::prelude::*;
 
 use crate::{
@@ -29,7 +32,7 @@ pub enum HomeMsg {
     Error,
     RefreshData,
     NeedUpdateConfig,
-    UpdateBudget(f64),
+    UpdateConfig(Config),
     NeedUpdateAccount,
     UpdateAccount(Vec<AccountSummary>),
     NeedUpdateTransactions,
@@ -41,7 +44,7 @@ pub enum HomeMsg {
 pub struct HomeComponent {
     account_data: AccountData,
     transactions_data: TransactionsData,
-    budget: Option<f64>,
+    config: Option<Arc<Config>>,
 }
 
 impl Component for HomeComponent {
@@ -58,7 +61,7 @@ impl Component for HomeComponent {
                 transactions: None,
                 page: (0, 50),
             },
-            budget: None,
+            config: None,
         };
 
         ctx.link().send_message(Self::Message::NeedUpdateConfig);
@@ -81,12 +84,16 @@ impl Component for HomeComponent {
             }
             HomeMsg::NeedUpdateConfig => {
                 ctx.link().send_future(async move {
-                    let budget_config = api::get_config("budget").await;
-                    match budget_config {
-                        ConfigOptions::Budget(b) => HomeMsg::UpdateBudget(b),
+                    let config = api::get_config("all").await;
+                    match config {
+                        ConfigOptions::All(c) => HomeMsg::UpdateConfig(c),
                         _ => HomeMsg::Error,
                     }
                 });
+            }
+            HomeMsg::UpdateConfig(c) => {
+                self.config = Some(Arc::new(c));
+                should_render = true;
             }
             HomeMsg::NeedUpdateTransactions => {
                 let (offset, limit) = self.transactions_data.page;
@@ -100,10 +107,6 @@ impl Component for HomeComponent {
                     accounts: Some(Arc::new(accounts)),
                     total: Some(total),
                 };
-                should_render = true;
-            }
-            HomeMsg::UpdateBudget(b) => {
-                self.budget = Some(b);
                 should_render = true;
             }
             HomeMsg::UpdateTransactions(transactions) => {
@@ -151,8 +154,8 @@ impl Component for HomeComponent {
             None => return "".into(),
         };
 
-        let budget = match &self.budget {
-            Some(b) => b,
+        let config = match &self.config {
+            Some(c) => c,
             None => return "".into(),
         };
         let transactions = match &self.transactions_data.transactions {
@@ -169,13 +172,13 @@ impl Component for HomeComponent {
             <div class="column right">
                 <div class="wrapper">
                     <div class="info"><h2>{"Total: £"}{total}</h2></div>
-                    <div class="info"><h2>{"Budget: £"}{budget}</h2></div>
+                    <div class="info"><h2>{"Budget: £"}{config.budget()}</h2></div>
                 </div>
             </div>
         </div>
         <div class="row">
             <div class="input_tran">
-            <TransactionForm on_submit={ctx.link().callback(|_| HomeMsg::RefreshData)}/>
+            <TransactionForm on_submit={ctx.link().callback(|_| HomeMsg::RefreshData)} config={config.clone()}/>
             </div>
         </div>
         <div class="row">
@@ -195,6 +198,88 @@ impl Component for HomeComponent {
             </div>
         </div>
         </div>
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Default)]
+pub struct UserTransaction {
+    pub id: i64,
+    pub account: String,
+    pub date: String,
+    pub description: String,
+    pub amount: String,
+    pub l1_tag: String,
+    pub l2_tag: String,
+    pub l3_tag: String,
+}
+
+impl UserTransaction {
+    pub fn to_transaction(&self, config: &Config) -> anyhow::Result<Transaction> {
+        let id = self.id;
+        let account = if config.account_list().contains(&self.account) {
+            self.account.to_owned()
+        } else {
+            return Err(anyhow!("Bad account."));
+        };
+
+        let date = match NaiveDate::parse_from_str(&self.date, "%Y-%m-%d") {
+            Ok(d) => NaiveDateTime::new(d, NaiveTime::default()),
+            Err(_) => return Err(anyhow!("Bad date.")),
+        };
+
+        let description = self.description.to_owned();
+
+        let amount = match &self.amount.parse::<f64>() {
+            Ok(a) => a.to_owned(),
+            Err(_) => return Err(anyhow!("Bad amount")),
+        };
+
+        let l1_tag: String;
+        let l2_tag: String;
+        let l3_tag: String;
+        if config
+            .tags()
+            .verify_tags(&self.l1_tag, &self.l2_tag, &self.l3_tag)
+        {
+            l1_tag = self.l1_tag.to_owned();
+            l2_tag = self.l2_tag.to_owned();
+            l3_tag = self.l3_tag.to_owned();
+        } else {
+            return Err(anyhow!("Bad tags."));
+        }
+
+        Ok(Transaction {
+            id,
+            account,
+            date,
+            description,
+            amount,
+            l1_tag,
+            l2_tag,
+            l3_tag,
+        })
+    }
+
+    pub fn from_transaction(transaction: &Transaction) -> Self {
+        let id = transaction.id;
+        let account = transaction.account.to_owned();
+        let date = transaction.date.date().to_string();
+        let description = transaction.description.to_owned();
+        let amount = transaction.amount.to_string();
+        let l1_tag = transaction.l1_tag.to_owned();
+        let l2_tag = transaction.l2_tag.to_owned();
+        let l3_tag = transaction.l3_tag.to_owned();
+
+        Self {
+            id,
+            account,
+            date,
+            description,
+            amount,
+            l1_tag,
+            l2_tag,
+            l3_tag,
         }
     }
 }

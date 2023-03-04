@@ -1,18 +1,16 @@
-use anyhow::anyhow;
-use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
-use common::{Config, ConfigOptions, Transaction};
-use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+
+use common::Config;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
+use super::UserTransaction;
 use crate::api;
 
 pub enum FormMsg {
     Error,
     Submit,
     Success,
-    NeedUpdateConfig,
-    UpdateConfig(Config),
     UpdateAccount(String),
     UpdateDate(String),
     UpdateDescription(String),
@@ -22,72 +20,13 @@ pub enum FormMsg {
     UpdateL3Tag(String),
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Default)]
-pub struct UserTransaction {
-    pub account: String,
-    pub date: String,
-    pub description: String,
-    pub amount: String,
-    pub l1_tag: String,
-    pub l2_tag: String,
-    pub l3_tag: String,
-}
-
-impl UserTransaction {
-    pub fn to_transaction(&self, config: &Config) -> anyhow::Result<Transaction> {
-        let id = 0;
-        let account = if config.account_list().contains(&self.account) {
-            self.account.to_owned()
-        } else {
-            return Err(anyhow!("Bad account."));
-        };
-
-        let date = match NaiveDate::parse_from_str(&self.date, "%Y-%m-%d") {
-            Ok(d) => NaiveDateTime::new(d, NaiveTime::default()),
-            Err(_) => return Err(anyhow!("Bad date.")),
-        };
-
-        let description = self.description.to_owned();
-
-        let amount = match &self.amount.parse::<f64>() {
-            Ok(a) => a.to_owned(),
-            Err(_) => return Err(anyhow!("Bad amount")),
-        };
-
-        let l1_tag: String;
-        let l2_tag: String;
-        let l3_tag: String;
-        if config
-            .tags()
-            .verify_tags(&self.l1_tag, &self.l2_tag, &self.l3_tag)
-        {
-            l1_tag = self.l1_tag.to_owned();
-            l2_tag = self.l2_tag.to_owned();
-            l3_tag = self.l3_tag.to_owned();
-        } else {
-            return Err(anyhow!("Bad tags."));
-        }
-
-        Ok(Transaction {
-            id,
-            account,
-            date,
-            description,
-            amount,
-            l1_tag,
-            l2_tag,
-            l3_tag,
-        })
-    }
-}
-
 #[derive(Clone, PartialEq, Properties)]
 pub struct FormProperties {
     pub on_submit: Callback<()>,
+    pub config: Arc<Config>,
 }
 
 pub struct TransactionForm {
-    config: Option<Config>,
     transaction: UserTransaction,
 }
 
@@ -95,15 +34,10 @@ impl Component for TransactionForm {
     type Message = FormMsg;
     type Properties = FormProperties;
 
-    fn create(ctx: &Context<Self>) -> Self {
-        let component = Self {
-            config: None,
+    fn create(_ctx: &Context<Self>) -> Self {
+        Self {
             transaction: UserTransaction::default(),
-        };
-
-        ctx.link().send_message(Self::Message::NeedUpdateConfig);
-
-        component
+        }
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
@@ -112,11 +46,7 @@ impl Component for TransactionForm {
             FormMsg::Success => (),
             FormMsg::Submit => {
                 log::info!("Handling submit");
-                let Some(config) = &self.config else {
-                    ctx.link().send_message(FormMsg::NeedUpdateConfig);
-                    return false;
-                };
-                let transaction = match self.transaction.to_transaction(config) {
+                let transaction = match self.transaction.to_transaction(&ctx.props().config) {
                     Ok(t) => t,
                     Err(e) => {
                         log::info!("Failed conversion: {e}");
@@ -131,19 +61,6 @@ impl Component for TransactionForm {
                     FormMsg::Success
                 });
                 self.transaction = UserTransaction::default();
-                return true;
-            }
-            FormMsg::NeedUpdateConfig => {
-                ctx.link().send_future(async move {
-                    let config = api::get_config("all").await;
-                    match config {
-                        ConfigOptions::All(c) => FormMsg::UpdateConfig(c),
-                        _ => FormMsg::Error,
-                    }
-                });
-            }
-            FormMsg::UpdateConfig(c) => {
-                self.config = Some(c);
                 return true;
             }
             FormMsg::UpdateAccount(account) => {

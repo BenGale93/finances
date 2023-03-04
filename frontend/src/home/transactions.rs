@@ -3,9 +3,11 @@ use std::sync::Arc;
 use common::Transaction;
 use yew::prelude::*;
 
+use super::UserTransaction;
+
 #[derive(PartialEq, Properties)]
 struct TransactionComponentProps {
-    pub transaction: Transaction,
+    pub transaction: UserTransaction,
 }
 
 #[function_component(TransactionComponent)]
@@ -38,7 +40,7 @@ pub fn transactions_component(
         .iter()
         .map(|transaction| {
             html! {
-            <TransactionComponent transaction={transaction.clone()}/>
+            <TransactionComponent transaction={UserTransaction::from_transaction(transaction)}/>
             }
         })
         .collect();

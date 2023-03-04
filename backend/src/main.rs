@@ -42,7 +42,9 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/", get(root))
         .route(
             "/api/transactions",
-            get(handlers::list_transactions).post(handlers::create_transaction),
+            get(handlers::list_transactions)
+                .post(handlers::create_transaction)
+                .patch(handlers::update_transaction),
         )
         .route("/api/config/:key", get(handlers::get_config))
         .route("/api/accounts", get(handlers::get_account_totals))

@@ -31,7 +31,6 @@ pub async fn list_transactions(
     Json(transactions)
 }
 
-#[axum::debug_handler]
 pub async fn create_transaction(
     State(app_state): State<Arc<AppState>>,
     Json(transaction): Json<Transaction>,
@@ -67,6 +66,49 @@ pub async fn create_transaction(
     .last_insert_rowid();
 
     (StatusCode::CREATED, Json(id))
+}
+
+#[axum::debug_handler]
+pub async fn update_transaction(
+    State(app_state): State<Arc<AppState>>,
+    Json(patch_transaction): Json<Transaction>,
+) -> Result<StatusCode, StatusCode> {
+    let mut conn = app_state.pool.acquire().await.unwrap();
+
+    let Transaction {
+        id,
+        account,
+        date,
+        description,
+        amount,
+        l1_tag,
+        l2_tag,
+        l3_tag,
+    } = patch_transaction;
+
+    let result = sqlx::query!(
+        r#"
+        UPDATE finances
+        SET account = ?1, date = ?2, description = ?3, amount = ?4,
+        l1_tag = ?5, l2_tag = ?6, l2_tag = ?7
+        WHERE rowid = ?8
+        "#,
+        account,
+        date,
+        description,
+        amount,
+        l1_tag,
+        l2_tag,
+        l3_tag,
+        id
+    )
+    .execute(&mut conn)
+    .await;
+
+    match result {
+        Ok(_) => Ok(StatusCode::OK),
+        Err(_) => Err(StatusCode::BAD_REQUEST),
+    }
 }
 
 pub async fn get_account_totals(

@@ -24,6 +24,15 @@ pub async fn create_transaction(transaction: Transaction) {
         .unwrap();
 }
 
+pub async fn update_transaction(transaction: Transaction) {
+    Request::patch("/api/transactions")
+        .body(serde_json::to_string(&transaction).unwrap())
+        .header("Content-Type", "application/json")
+        .send()
+        .await
+        .unwrap();
+}
+
 async fn fetch_data<T: for<'de> serde::de::Deserialize<'de>>(url: &str) -> T {
     Request::get(url)
         .send()

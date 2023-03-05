@@ -95,7 +95,7 @@ pub enum ConfigOptions {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
-pub struct Tags(HashMap<String, HashMap<String, Vec<String>>>);
+pub struct Tags(pub HashMap<String, HashMap<String, Vec<String>>>);
 
 impl Tags {
     pub fn verify_tags(&self, l1_tag: &str, l2_tag: &str, l3_tag: &str) -> bool {

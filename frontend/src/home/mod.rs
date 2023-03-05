@@ -1,4 +1,5 @@
 mod accounts;
+mod fields;
 mod transaction_form;
 mod transactions;
 
@@ -13,7 +14,7 @@ use yew::prelude::*;
 use crate::{
     api,
     home::{
-        accounts::AccountsSummaryComponent, transaction_form::TransactionForm,
+        accounts::AccountsSummaryComponent, transaction_form::CreateForm,
         transactions::TransactionsComponent,
     },
 };
@@ -178,7 +179,7 @@ impl Component for HomeComponent {
         </div>
         <div class="row">
             <div class="input_tran">
-            <TransactionForm on_submit={ctx.link().callback(|_| HomeMsg::RefreshData)} config={config.clone()}/>
+            <CreateForm on_submit={ctx.link().callback(|_| HomeMsg::RefreshData)} config={config.clone()}/>
             </div>
         </div>
         <div class="row">
@@ -220,19 +221,19 @@ impl UserTransaction {
         let account = if config.account_list().contains(&self.account) {
             self.account.to_owned()
         } else {
-            return Err(anyhow!("Bad account."));
+            return Err(anyhow!("Bad account {:?}.", &self.account));
         };
 
         let date = match NaiveDate::parse_from_str(&self.date, "%Y-%m-%d") {
             Ok(d) => NaiveDateTime::new(d, NaiveTime::default()),
-            Err(_) => return Err(anyhow!("Bad date.")),
+            Err(_) => return Err(anyhow!("Bad date {:?}.", &self.date)),
         };
 
         let description = self.description.to_owned();
 
         let amount = match &self.amount.parse::<f64>() {
             Ok(a) => a.to_owned(),
-            Err(_) => return Err(anyhow!("Bad amount")),
+            Err(_) => return Err(anyhow!("Bad amount {:?}", &self.amount)),
         };
 
         let l1_tag: String;
@@ -246,7 +247,12 @@ impl UserTransaction {
             l2_tag = self.l2_tag.to_owned();
             l3_tag = self.l3_tag.to_owned();
         } else {
-            return Err(anyhow!("Bad tags."));
+            return Err(anyhow!(
+                "Bad tags: {:?}, {:?}, {:?}.",
+                &self.l1_tag,
+                &self.l2_tag,
+                &self.l3_tag
+            ));
         }
 
         Ok(Transaction {

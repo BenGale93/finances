@@ -1,40 +1,38 @@
 use std::sync::Arc;
 
 use common::Config;
-use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
-use super::UserTransaction;
+use super::{fields, UserTransaction};
 use crate::api;
 
-pub enum FormMsg {
+pub enum CreateFormMsg {
     Error,
     Submit,
-    Success,
+    Success(UserTransaction),
     UpdateAccount(String),
     UpdateDate(String),
     UpdateDescription(String),
     UpdateAmount(String),
-    UpdateL1Tag(String),
-    UpdateL2Tag(String),
-    UpdateL3Tag(String),
+    UpdateTags((String, String, String)),
 }
 
 #[derive(Clone, PartialEq, Properties)]
-pub struct FormProperties {
+pub struct CreateFormProps {
     pub on_submit: Callback<()>,
     pub config: Arc<Config>,
 }
 
-pub struct TransactionForm {
+pub struct CreateForm {
     transaction: UserTransaction,
 }
 
-impl Component for TransactionForm {
-    type Message = FormMsg;
-    type Properties = FormProperties;
+impl Component for CreateForm {
+    type Message = CreateFormMsg;
+    type Properties = CreateFormProps;
 
     fn create(_ctx: &Context<Self>) -> Self {
+        log::info!("Creating form");
         Self {
             transaction: UserTransaction::default(),
         }
@@ -42,53 +40,64 @@ impl Component for TransactionForm {
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            FormMsg::Error => (),
-            FormMsg::Success => (),
-            FormMsg::Submit => {
+            CreateFormMsg::Error => (),
+            CreateFormMsg::Success(t) => {
+                self.transaction = t;
+            }
+            CreateFormMsg::Submit => {
                 log::info!("Handling submit");
                 let transaction = match self.transaction.to_transaction(&ctx.props().config) {
                     Ok(t) => t,
                     Err(e) => {
                         log::info!("Failed conversion: {e}");
-                        ctx.link().send_message(FormMsg::Error);
+                        ctx.link().send_message(CreateFormMsg::Error);
                         return false;
                     }
                 };
-                log::info!("Making API post.");
+                log::info!("Making API post with {:?}.", transaction);
+                let submitted_transaction = self.transaction.clone();
                 ctx.props().on_submit.emit(());
                 ctx.link().send_future(async move {
                     api::create_transaction(transaction).await;
-                    FormMsg::Success
+                    CreateFormMsg::Success(submitted_transaction)
                 });
                 self.transaction = UserTransaction::default();
-                return true;
             }
-            FormMsg::UpdateAccount(account) => {
+            CreateFormMsg::UpdateAccount(account) => {
+                log::info!("Account: {}", account);
                 self.transaction.account = account;
             }
-            FormMsg::UpdateDate(date) => {
+            CreateFormMsg::UpdateDate(date) => {
+                log::info!("Date: {}", date);
                 self.transaction.date = date;
             }
-            FormMsg::UpdateDescription(description) => {
+            CreateFormMsg::UpdateDescription(description) => {
                 self.transaction.description = description;
             }
-            FormMsg::UpdateAmount(amount) => {
+            CreateFormMsg::UpdateAmount(amount) => {
                 self.transaction.amount = amount;
             }
-            FormMsg::UpdateL1Tag(tag) => {
-                self.transaction.l1_tag = tag;
-            }
-            FormMsg::UpdateL2Tag(tag) => {
-                self.transaction.l2_tag = tag;
-            }
-            FormMsg::UpdateL3Tag(tag) => {
-                self.transaction.l3_tag = tag;
+            CreateFormMsg::UpdateTags(tags) => {
+                log::info!("Updating tags: {:?}", tags);
+                self.transaction.l1_tag = tags.0;
+                self.transaction.l2_tag = tags.1;
+                self.transaction.l3_tag = tags.2;
             }
         }
         true
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
+        let given_account = self.transaction.account.clone();
+        let given_date = self.transaction.date.clone();
+        let given_description = self.transaction.description.clone();
+        let given_amount = self.transaction.amount.clone();
+        let given_tags = (
+            self.transaction.l1_tag.clone(),
+            self.transaction.l2_tag.clone(),
+            self.transaction.l3_tag.clone(),
+        );
+
         yew::html! {
             <form>
                 <table>
@@ -103,94 +112,29 @@ impl Component for TransactionForm {
                 </tr>
                 <tr>
                     <td>
-                        <input
-                            class="form-control"
-                            name="account"
-                            required=true
-                            value={ self.transaction.account.clone() }
-                            oninput={ ctx.link().callback(|e: InputEvent| {
-                                let input = e.target_unchecked_into::<HtmlInputElement>();
-                                FormMsg::UpdateAccount(input.value())
-                            }) }
-                        />
+                    <fields::AccountPicker account_list={ctx.props().config.account_list().to_owned()}
+                    {given_account}
+                    on_input={ctx.link().callback(CreateFormMsg::UpdateAccount)}/>
                     </td>
                     <td>
-                        <input
-                            class="form-control"
-                            name="date"
-                            required=true
-                            value={ self.transaction.date.clone() }
-                            oninput={ ctx.link().callback(|e: InputEvent| {
-                                let input = e.target_unchecked_into::<HtmlInputElement>();
-                                FormMsg::UpdateDate(input.value())
-                            }) }
-                        />
+                    <fields::DatePicker {given_date}
+                    on_input={ctx.link().callback(CreateFormMsg::UpdateDate)}/>
                     </td>
                     <td>
-                        <input
-                            class="form-control"
-                            name="description"
-                            required=true
-                            value={ self.transaction.description.clone() }
-                            oninput={ ctx.link().callback(|e: InputEvent| {
-                                let input = e.target_unchecked_into::<HtmlInputElement>();
-                                FormMsg::UpdateDescription(input.value())
-                            }) }
-                        />
+                    <fields::DescriptionField {given_description}
+                    on_input={ctx.link().callback(CreateFormMsg::UpdateDescription)}/>
                     </td>
                     <td>
-                        <input
-                            class="form-control"
-                            name="amount"
-                            required=true
-                            value={ self.transaction.amount.clone() }
-                            oninput={ ctx.link().callback(|e: InputEvent| {
-                                let input = e.target_unchecked_into::<HtmlInputElement>();
-                                FormMsg::UpdateAmount(input.value())
-                            }) }
-                        />
+                    <fields::AmountField {given_amount}
+                    on_input={ctx.link().callback(CreateFormMsg::UpdateAmount)}/>
                     </td>
-                    <td>
-                        <input
-                            class="form-control"
-                            name="l1_tag"
-                            required=true
-                            value={ self.transaction.l1_tag.clone() }
-                            oninput={ ctx.link().callback(|e: InputEvent| {
-                                let input = e.target_unchecked_into::<HtmlInputElement>();
-                                FormMsg::UpdateL1Tag(input.value())
-                            }) }
-                        />
-                    </td>
-                    <td>
-                        <input
-                            class="form-control"
-                            name="l2_tag"
-                            required=true
-                            value={ self.transaction.l2_tag.clone() }
-                            oninput={ ctx.link().callback(|e: InputEvent| {
-                                let input = e.target_unchecked_into::<HtmlInputElement>();
-                                FormMsg::UpdateL2Tag(input.value())
-                            }) }
-                        />
-                    </td>
-                    <td>
-                        <input
-                            class="form-control"
-                            name="l3_tag"
-                            required=true
-                            value={ self.transaction.l3_tag.clone() }
-                            oninput={ ctx.link().callback(|e: InputEvent| {
-                                let input = e.target_unchecked_into::<HtmlInputElement>();
-                                FormMsg::UpdateL3Tag(input.value())
-                            }) }
-                        />
-                    </td>
+                    <fields::TagPicker tags={ctx.props().config.tags().clone()} {given_tags}
+                    on_input={ctx.link().callback(CreateFormMsg::UpdateTags)}/>
                 </tr>
 
                 </table>
                 <button
-                    onclick={ ctx.link().callback(|_| FormMsg::Submit) }
+                    onclick={ ctx.link().callback(|_| CreateFormMsg::Submit) }
                 >
                     { "Create" }
                 </button>

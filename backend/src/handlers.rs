@@ -119,7 +119,7 @@ pub async fn get_account_totals(
         AccountSummary,
         r#"WITH grouped AS
         (SELECT account as name, SUM(amount) as amount FROM finances GROUP BY account ORDER BY name)
-        SELECT name, amount as "amount!" FROM grouped WHERE amount > 0.001"#
+        SELECT name, amount as "amount!" FROM grouped WHERE abs(amount) > 0.001"#
     )
     .fetch_all(&pool)
     .await

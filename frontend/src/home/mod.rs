@@ -76,10 +76,12 @@ impl Component for HomeComponent {
         match msg {
             HomeMsg::Error => (),
             HomeMsg::RefreshData => {
+                log::info!("Refreshing data.");
                 ctx.link().send_message(HomeMsg::NeedUpdateAccount);
                 ctx.link().send_message(HomeMsg::NeedUpdateTransactions);
             }
             HomeMsg::NeedUpdateAccount => {
+                log::info!("Getting all accounts.");
                 ctx.link()
                     .send_future(async move { HomeMsg::UpdateAccount(api::get_accounts().await) });
             }
@@ -97,12 +99,14 @@ impl Component for HomeComponent {
                 should_render = true;
             }
             HomeMsg::NeedUpdateTransactions => {
+                log::info!("Updating transactions {:?}", self.transactions_data.page);
                 let (offset, limit) = self.transactions_data.page;
                 ctx.link().send_future(async move {
                     HomeMsg::UpdateTransactions(api::get_transactions(offset, limit).await)
                 });
             }
             HomeMsg::UpdateAccount(accounts) => {
+                log::info!("Got all accounts.");
                 let total = accounts.iter().map(|a| a.amount).sum();
                 self.account_data = AccountData {
                     accounts: Some(Arc::new(accounts)),
@@ -112,6 +116,7 @@ impl Component for HomeComponent {
             }
             HomeMsg::UpdateTransactions(transactions) => {
                 if transactions.is_empty() {
+                    log::info!("Empty transactions");
                     /* Gone too far, let's go back */
                     ctx.link().send_message(HomeMsg::Forward);
                     should_render = false;
@@ -121,6 +126,7 @@ impl Component for HomeComponent {
                 }
             }
             HomeMsg::Back => {
+                log::info!("Going back");
                 let transactions = match &self.transactions_data.transactions {
                     Some(t) => t,
                     None => return false,
@@ -133,6 +139,7 @@ impl Component for HomeComponent {
                 }
             }
             HomeMsg::Forward => {
+                log::info!("Going forward");
                 self.transactions_data.page.0 = self
                     .transactions_data
                     .page
@@ -193,7 +200,9 @@ impl Component for HomeComponent {
             </table>
             </div>
             <div class="column right">
-            <TransactionsComponent transactions={transactions.clone()}/>
+            <TransactionsComponent transactions={transactions.clone()}
+            on_submit={ctx.link().callback(|_| HomeMsg::RefreshData)}
+            config={config.clone()}/>
             <button onclick={ctx.link().callback(|_| HomeMsg::Back)}>{"back"}</button>
             <button onclick={ctx.link().callback(|_| HomeMsg::Forward)}>{"forward"}</button>
             </div>

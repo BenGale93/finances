@@ -8,6 +8,7 @@ pub enum FieldMsg {
 
 #[derive(PartialEq, Properties)]
 pub struct AccountPickerProps {
+    pub id: String,
     pub account_list: Vec<String>,
     pub given_account: String,
     pub on_input: Callback<String>,
@@ -31,13 +32,18 @@ impl Component for AccountPicker {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
+        let given_account = ctx.props().given_account.clone();
         let account_list_html: Html = ctx
             .props()
             .account_list
             .iter()
             .map(|a| {
                 html! {
+                    if a == &given_account {
+                    <option selected=true id={a.clone()}>{a.clone()}</option>
+                    } else {
                     <option id={a.clone()}>{a.clone()}</option>
+                    }
                 }
             })
             .collect();
@@ -46,13 +52,17 @@ impl Component for AccountPicker {
             <select
                 class="form-control"
                 id="account"
-                value={ctx.props().given_account.clone()}
+                form={ctx.props().id.clone()}
+                value={given_account}
+                onfocus={ ctx.link().callback(|e: FocusEvent| {
+                    let input = e.target_unchecked_into::<HtmlInputElement>();
+                    FieldMsg::Update(input.value())
+                }) }
                 oninput={ ctx.link().callback(|e: InputEvent| {
                     let input = e.target_unchecked_into::<HtmlInputElement>();
                     FieldMsg::Update(input.value())
                 }) }
                 >
-                <option value="default" selected=true>{"Select an account"}</option>
                 {account_list_html}
             </select>
         }
@@ -61,6 +71,7 @@ impl Component for AccountPicker {
 
 #[derive(PartialEq, Properties)]
 pub struct DatePickerProps {
+    pub id: String,
     pub given_date: String,
     pub on_input: Callback<String>,
 }
@@ -88,6 +99,7 @@ impl Component for DatePicker {
                 type="date"
                 class="form-control"
                 id="date"
+                form={ctx.props().id.clone()}
                 value={ctx.props().given_date.clone()}
                 oninput={ ctx.link().callback(|e: InputEvent| {
                     let input = e.target_unchecked_into::<HtmlInputElement>();
@@ -100,6 +112,7 @@ impl Component for DatePicker {
 
 #[derive(PartialEq, Properties)]
 pub struct DescriptionProps {
+    pub id: String,
     pub given_description: String,
     pub on_input: Callback<String>,
 }
@@ -127,6 +140,7 @@ impl Component for DescriptionField {
                 class="form-control"
                 id="description"
                 required=true
+                form={ctx.props().id.clone()}
                 value={ctx.props().given_description.clone()}
                 oninput={ ctx.link().callback(|e: InputEvent| {
                     let input = e.target_unchecked_into::<HtmlInputElement>();
@@ -139,6 +153,7 @@ impl Component for DescriptionField {
 
 #[derive(PartialEq, Properties)]
 pub struct AmountProps {
+    pub id: String,
     pub given_amount: String,
     pub on_input: Callback<String>,
 }
@@ -166,6 +181,7 @@ impl Component for AmountField {
                 class="form-control"
                 id="amount"
                 required=true
+                form={ctx.props().id.clone()}
                 value={ctx.props().given_amount.clone()}
                 oninput={ ctx.link().callback(|e: InputEvent| {
                     let input = e.target_unchecked_into::<HtmlInputElement>();
@@ -178,6 +194,7 @@ impl Component for AmountField {
 
 #[derive(PartialEq, Properties)]
 pub struct TagPickerProps {
+    pub id: String,
     pub tags: Tags,
     pub given_tags: (String, String, String),
     pub on_input: Callback<(String, String, String)>,
@@ -191,9 +208,7 @@ pub enum TagsMsg {
 }
 
 pub struct TagPicker {
-    l1_tag: String,
-    l2_tag: String,
-    l3_tag: String,
+    tags: (String, String, String),
 }
 
 impl Component for TagPicker {
@@ -201,34 +216,34 @@ impl Component for TagPicker {
     type Properties = TagPickerProps;
 
     fn create(ctx: &Context<Self>) -> Self {
-        let (l1_tag, l2_tag, l3_tag) = ctx.props().given_tags.clone();
         Self {
-            l1_tag,
-            l2_tag,
-            l3_tag,
+            tags: ctx.props().given_tags.clone(),
         }
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            TagsMsg::Update => ctx.props().on_input.emit((
-                self.l1_tag.clone(),
-                self.l2_tag.clone(),
-                self.l3_tag.clone(),
-            )),
+            TagsMsg::Update => ctx.props().on_input.emit(self.tags.clone()),
             TagsMsg::UpdateL1Tag(t) => {
-                self.l1_tag = t;
+                self.tags.0 = t;
                 ctx.link().send_message(TagsMsg::Update);
             }
             TagsMsg::UpdateL2Tag(t) => {
-                self.l2_tag = t;
+                self.tags.1 = t;
                 ctx.link().send_message(TagsMsg::Update);
             }
             TagsMsg::UpdateL3Tag(t) => {
-                self.l3_tag = t;
+                self.tags.2 = t;
                 ctx.link().send_message(TagsMsg::Update);
             }
         };
+        true
+    }
+
+    fn changed(&mut self, ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
+        if ctx.props().given_tags != self.tags {
+            self.tags = ctx.props().given_tags.clone();
+        }
         true
     }
 
@@ -240,18 +255,26 @@ impl Component for TagPicker {
             .keys()
             .map(|k| {
                 html! {
+                    if k == &self.tags.0 {
+                    <option selected=true id={k.clone()}>{k.clone()}</option>
+                    } else {
                     <option id={k.clone()}>{k.clone()}</option>
+                    }
                 }
             })
             .collect();
 
-        let l2_tag_list = ctx.props().tags.0.get(&self.l1_tag);
+        let l2_tag_list = ctx.props().tags.0.get(&self.tags.0);
         let l2_tag_html = match l2_tag_list {
             Some(level_2) => level_2
                 .keys()
                 .map(|k| {
                     html! {
-                        <option id={k.clone()}>{k.clone()}</option>
+                    if k == &self.tags.1 {
+                    <option selected=true id={k.clone()}>{k.clone()}</option>
+                    } else {
+                    <option id={k.clone()}>{k.clone()}</option>
+                    }
                     }
                 })
                 .collect(),
@@ -259,15 +282,19 @@ impl Component for TagPicker {
         };
 
         let l3_tag_list = match l2_tag_list {
-            Some(t) => t.get(&self.l2_tag),
+            Some(t) => t.get(&self.tags.1),
             None => None,
         };
         let l3_tag_html = match l3_tag_list {
             Some(level_3) => level_3
                 .iter()
-                .map(|t| {
+                .map(|k| {
                     html! {
-                        <option id={t.clone()}>{t.clone()}</option>
+                    if k == &self.tags.2 {
+                    <option selected=true id={k.clone()}>{k.clone()}</option>
+                    } else {
+                    <option id={k.clone()}>{k.clone()}</option>
+                    }
                     }
                 })
                 .collect(),
@@ -280,7 +307,12 @@ impl Component for TagPicker {
             <select
                 class="form-control"
                 id="l1_tag"
-                value={self.l1_tag.clone()}
+                value={self.tags.0.clone()}
+                form={ctx.props().id.clone()}
+                onfocus={ ctx.link().callback(|e: FocusEvent| {
+                    let input = e.target_unchecked_into::<HtmlInputElement>();
+                    TagsMsg::UpdateL1Tag(input.value())
+                }) }
                 oninput={ ctx.link().callback(|e: InputEvent| {
                     let input = e.target_unchecked_into::<HtmlInputElement>();
                     TagsMsg::UpdateL1Tag(input.value())
@@ -293,7 +325,12 @@ impl Component for TagPicker {
             <select
                 class="form-control"
                 id="l2_tag"
-                value={self.l2_tag.clone()}
+                value={self.tags.1.clone()}
+                form={ctx.props().id.clone()}
+                onfocus={ ctx.link().callback(|e: FocusEvent| {
+                    let input = e.target_unchecked_into::<HtmlInputElement>();
+                    TagsMsg::UpdateL2Tag(input.value())
+                }) }
                 oninput={ ctx.link().callback(|e: InputEvent| {
                     let input = e.target_unchecked_into::<HtmlInputElement>();
                     TagsMsg::UpdateL2Tag(input.value())
@@ -306,7 +343,12 @@ impl Component for TagPicker {
             <select
                 class="form-control"
                 id="l3_tag"
-                value={self.l3_tag.clone()}
+                value={self.tags.2.clone()}
+                form={ctx.props().id.clone()}
+                onfocus={ ctx.link().callback(|e: FocusEvent| {
+                    let input = e.target_unchecked_into::<HtmlInputElement>();
+                    TagsMsg::UpdateL3Tag(input.value())
+                }) }
                 oninput={ ctx.link().callback(|e: InputEvent| {
                     let input = e.target_unchecked_into::<HtmlInputElement>();
                     TagsMsg::UpdateL3Tag(input.value())

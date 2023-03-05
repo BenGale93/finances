@@ -42,6 +42,8 @@ impl Component for CreateForm {
         match msg {
             CreateFormMsg::Error => (),
             CreateFormMsg::Success(t) => {
+                log::info!("Submitted new transaction");
+                ctx.props().on_submit.emit(());
                 self.transaction = t;
             }
             CreateFormMsg::Submit => {
@@ -56,7 +58,6 @@ impl Component for CreateForm {
                 };
                 log::info!("Making API post with {:?}.", transaction);
                 let submitted_transaction = self.transaction.clone();
-                ctx.props().on_submit.emit(());
                 ctx.link().send_future(async move {
                     api::create_transaction(transaction).await;
                     CreateFormMsg::Success(submitted_transaction)
@@ -88,6 +89,7 @@ impl Component for CreateForm {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
+        let id = "create".to_string();
         let given_account = self.transaction.account.clone();
         let given_date = self.transaction.date.clone();
         let given_description = self.transaction.description.clone();
@@ -99,9 +101,10 @@ impl Component for CreateForm {
         );
 
         yew::html! {
-            <form>
+            <>
                 <table>
                 <tr>
+                    <th></th>
                     <th><label for="account">{ "Account" }</label></th>
                     <th><label for="date">{ "Date" }</label></th>
                     <th><label for="description">{ "Description" }</label></th>
@@ -112,23 +115,26 @@ impl Component for CreateForm {
                 </tr>
                 <tr>
                     <td>
-                    <fields::AccountPicker account_list={ctx.props().config.account_list().to_owned()}
+                    <form id={id.clone()}></form>
+                    </td>
+                    <td>
+                    <fields::AccountPicker id={id.clone()} account_list={ctx.props().config.account_list().to_owned()}
                     {given_account}
                     on_input={ctx.link().callback(CreateFormMsg::UpdateAccount)}/>
                     </td>
                     <td>
-                    <fields::DatePicker {given_date}
+                    <fields::DatePicker id={id.clone()} {given_date}
                     on_input={ctx.link().callback(CreateFormMsg::UpdateDate)}/>
                     </td>
                     <td>
-                    <fields::DescriptionField {given_description}
+                    <fields::DescriptionField id={id.clone()} {given_description}
                     on_input={ctx.link().callback(CreateFormMsg::UpdateDescription)}/>
                     </td>
                     <td>
-                    <fields::AmountField {given_amount}
+                    <fields::AmountField id={id.clone()} {given_amount}
                     on_input={ctx.link().callback(CreateFormMsg::UpdateAmount)}/>
                     </td>
-                    <fields::TagPicker tags={ctx.props().config.tags().clone()} {given_tags}
+                    <fields::TagPicker id={id.clone()} tags={ctx.props().config.tags().clone()} {given_tags}
                     on_input={ctx.link().callback(CreateFormMsg::UpdateTags)}/>
                 </tr>
 
@@ -138,7 +144,7 @@ impl Component for CreateForm {
                 >
                     { "Create" }
                 </button>
-            </form>
+            </>
         }
     }
 }

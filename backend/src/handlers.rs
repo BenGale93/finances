@@ -90,7 +90,7 @@ pub async fn update_transaction(
         r#"
         UPDATE finances
         SET account = ?1, date = ?2, description = ?3, amount = ?4,
-        l1_tag = ?5, l2_tag = ?6, l2_tag = ?7
+        l1_tag = ?5, l2_tag = ?6, l3_tag = ?7
         WHERE rowid = ?8
         "#,
         account,

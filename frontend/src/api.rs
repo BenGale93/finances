@@ -33,6 +33,15 @@ pub async fn update_transaction(transaction: Transaction) {
         .unwrap();
 }
 
+pub async fn delete_transaction(id: i64) {
+    Request::delete("/api/transactions")
+        .body(serde_json::to_string(&id).unwrap())
+        .header("Content-Type", "application/json")
+        .send()
+        .await
+        .unwrap();
+}
+
 async fn fetch_data<T: for<'de> serde::de::Deserialize<'de>>(url: &str) -> T {
     Request::get(url)
         .send()

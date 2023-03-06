@@ -146,3 +146,23 @@ pub async fn get_config(
 
     Ok(Json(option))
 }
+
+pub async fn delete_transaction(
+    State(app_state): State<Arc<AppState>>,
+    Json(id): Json<i64>,
+) -> StatusCode {
+    let mut conn = app_state.pool.acquire().await.unwrap();
+    let result = sqlx::query!(
+        r#"
+        DELETE FROM finances WHERE rowid = ?1
+        "#,
+        id
+    )
+    .execute(&mut conn)
+    .await;
+
+    match result {
+        Ok(_) => StatusCode::OK,
+        Err(_) => StatusCode::NOT_FOUND,
+    }
+}

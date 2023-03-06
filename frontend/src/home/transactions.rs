@@ -9,6 +9,8 @@ use crate::api;
 pub enum UpdateFormMsg {
     Error,
     Submit,
+    Delete,
+    Deleted,
     Success(UserTransaction),
     UpdateAccount(String),
     UpdateDate(String),
@@ -62,6 +64,17 @@ impl Component for TransactionComponent {
                     UpdateFormMsg::Success(submitted_transaction)
                 });
                 self.transaction = UserTransaction::default();
+            }
+            UpdateFormMsg::Deleted => {
+                ctx.props().on_submit.emit(());
+            }
+            UpdateFormMsg::Delete => {
+                log::info!("Making API delete with {:?}.", self.transaction.id);
+                let id = self.transaction.id;
+                ctx.link().send_future(async move {
+                    api::delete_transaction(id).await;
+                    UpdateFormMsg::Deleted
+                });
             }
             UpdateFormMsg::UpdateAccount(account) => {
                 log::info!("Account: {}", account);
@@ -131,7 +144,8 @@ impl Component for TransactionComponent {
                     <fields::TagPicker id={id.clone()} tags={ctx.props().config.tags().clone()} {given_tags}
                     on_input={ctx.link().callback(UpdateFormMsg::UpdateTags)}/>
                     <td>
-                    <button onclick={ctx.link().callback(|_| UpdateFormMsg::Submit)}>{"Update"}</button>
+                    <button onclick={ctx.link().callback(|_| UpdateFormMsg::Submit)}>{"💾"}</button>
+                    <button onclick={ctx.link().callback(|_| UpdateFormMsg::Delete)}>{"❌"}</button>
                     </td>
                 </tr>
 

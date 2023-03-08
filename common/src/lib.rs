@@ -110,14 +110,17 @@ impl Tags {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Default)]
-pub struct BalanceByDay {
-    pub date: NaiveDateTime,
+pub struct BalanceByTime {
+    pub date: String,
+    pub incoming: f64,
+    pub outgoing: f64,
     pub balance: f64,
 }
 
-pub type BalancesByDay = [BalanceByDay];
+pub type BalancesByDay = [BalanceByTime];
 
 pub trait BalancesByDayExt {
+    fn vectors(&self) -> (Vec<String>, Vec<f64>, Vec<f64>, Vec<f64>);
     fn cumsum(&self) -> BalanceOverTime;
 
     fn rolling_average_cumsum(&self, window: usize) -> Option<BalanceOverTime>;
@@ -125,18 +128,34 @@ pub trait BalancesByDayExt {
 
 #[derive(PartialEq)]
 pub struct BalanceOverTime {
-    pub dates: Vec<NaiveDateTime>,
+    pub dates: Vec<String>,
     pub balances: Vec<f64>,
 }
 
 impl BalancesByDayExt for BalancesByDay {
+    fn vectors(&self) -> (Vec<String>, Vec<f64>, Vec<f64>, Vec<f64>) {
+        let len = self.len();
+        let mut dates = Vec::with_capacity(len);
+        let mut incoming = Vec::with_capacity(len);
+        let mut outgoing = Vec::with_capacity(len);
+        let mut balance = Vec::with_capacity(len);
+
+        (0..len).for_each(|i| {
+            dates.push(self[i].date.clone());
+            incoming.push(self[i].incoming);
+            outgoing.push(self[i].outgoing);
+            balance.push(self[i].balance);
+        });
+
+        (dates, incoming, outgoing, balance)
+    }
     fn cumsum(&self) -> BalanceOverTime {
         let len = self.len();
         let mut date = Vec::with_capacity(len);
         let mut total = Vec::with_capacity(len);
 
         for point in self {
-            date.push(point.date);
+            date.push(point.date.clone());
             total.push(point.balance);
         }
 
@@ -164,7 +183,7 @@ impl BalancesByDayExt for BalancesByDay {
         }
 
         let mut rolling_averages: Vec<f64> = Vec::with_capacity(length);
-        let mut dates: Vec<NaiveDateTime> = Vec::with_capacity(length);
+        let dates = full_dates[window_index..length].to_owned();
 
         let mut sum = 0.0;
 
@@ -175,7 +194,6 @@ impl BalancesByDayExt for BalancesByDay {
 
         let first_moving_average_day = sum / window as f64;
         rolling_averages.push(first_moving_average_day);
-        dates.push(full_dates[window_index]);
 
         if length == window {
             return Some(BalanceOverTime {
@@ -193,7 +211,6 @@ impl BalancesByDayExt for BalancesByDay {
             let tail_balance = cum_bal[tail_balance_index] / window as f64;
             let current_rolling_average = prev_rolling_average - head_balance + tail_balance;
             rolling_averages.push(current_rolling_average);
-            dates.push(full_dates[tail_balance_index]);
 
             head_balance_index += 1;
             tail_balance_index += 1;
@@ -204,4 +221,15 @@ impl BalancesByDayExt for BalancesByDay {
             balances: rolling_averages,
         })
     }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum DateGrouping {
+    Day,
+    Month,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BalanceTimeOptions {
+    pub grouping: Option<DateGrouping>,
 }

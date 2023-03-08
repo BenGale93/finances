@@ -6,7 +6,10 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use common::{AccountSummary, BalanceByDay, Config, ConfigOptions, ListOptions, Transaction};
+use common::{
+    AccountSummary, BalanceByTime, BalanceTimeOptions, Config, ConfigOptions, DateGrouping,
+    ListOptions, Transaction,
+};
 
 use crate::AppState;
 
@@ -167,16 +170,36 @@ pub async fn delete_transaction(
     }
 }
 
-pub async fn balance_by_day(State(app_state): State<Arc<AppState>>) -> Json<Vec<BalanceByDay>> {
+pub async fn balance_by_date(
+    Query(opts): Query<BalanceTimeOptions>,
+    State(app_state): State<Arc<AppState>>,
+) -> Json<Vec<BalanceByTime>> {
     let pool = app_state.pool.clone();
-    let balance = sqlx::query_as!(
-        BalanceByDay,
-        r#"SELECT date as "date!", SUM(amount) as "balance!"
-        FROM finances GROUP BY date
-        "#,
-    )
-    .fetch_all(&pool)
-    .await
-    .unwrap();
+    let balance = match opts.grouping.unwrap_or(DateGrouping::Day) {
+        DateGrouping::Day => sqlx::query_as!(
+            BalanceByTime,
+            r#"SELECT STRFTIME("%Y-%m-%d", date) as "date!",
+            SUM(CASE WHEN amount >= 0 THEN amount END) as "incoming!",
+            SUM(CASE WHEN amount < 0 THEN amount END) as "outgoing!",
+            SUM(amount) as "balance!"
+        FROM finances GROUP BY STRFTIME("%Y-%m-%d", date)
+        "#
+        )
+        .fetch_all(&pool)
+        .await
+        .unwrap(),
+        DateGrouping::Month => sqlx::query_as!(
+            BalanceByTime,
+            r#"SELECT STRFTIME("%Y-%m", date) as "date!",
+            SUM(CASE WHEN amount >= 0 THEN amount END) as "incoming!",
+            SUM(CASE WHEN amount < 0 THEN amount END) as "outgoing!",
+            SUM(amount) as "balance!"
+        FROM finances GROUP BY STRFTIME("%Y-%m", date)
+        "#
+        )
+        .fetch_all(&pool)
+        .await
+        .unwrap(),
+    };
     Json(balance)
 }

@@ -1,18 +1,20 @@
 use std::sync::Arc;
 
-use common::{BalanceByDay, BalanceOverTime, BalancesByDayExt};
-use plotly::{Plot, Scatter};
+use common::{BalanceByTime, BalanceOverTime, BalancesByDayExt, DateGrouping};
+use plotly::{Bar, Plot, Scatter};
 use yew::prelude::*;
 
 use crate::api;
 
 pub enum BalanceMsg {
-    NeedUpdateBalanceOverTime,
-    UpdateBalanceOverTime(Vec<BalanceByDay>),
+    NeedUpdateBalance,
+    UpdateBalanceByDay(Vec<BalanceByTime>),
+    UpdateBalanceByMonth(Vec<BalanceByTime>),
 }
 
 pub struct BalanceComponent {
-    balance_over_time: Option<Arc<Vec<BalanceByDay>>>,
+    balance_by_day: Option<Arc<Vec<BalanceByTime>>>,
+    balance_by_month: Option<Arc<Vec<BalanceByTime>>>,
 }
 
 impl Component for BalanceComponent {
@@ -21,39 +23,58 @@ impl Component for BalanceComponent {
 
     fn create(ctx: &Context<Self>) -> Self {
         let component = Self {
-            balance_over_time: None,
+            balance_by_day: None,
+            balance_by_month: None,
         };
 
-        ctx.link()
-            .send_message(Self::Message::NeedUpdateBalanceOverTime);
+        ctx.link().send_message(Self::Message::NeedUpdateBalance);
 
         component
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            BalanceMsg::NeedUpdateBalanceOverTime => {
-                log::info!("Updating balance over time.");
+            BalanceMsg::NeedUpdateBalance => {
+                log::info!("Updating balance by day.");
                 ctx.link().send_future(async move {
-                    BalanceMsg::UpdateBalanceOverTime(api::balance_over_time().await)
+                    BalanceMsg::UpdateBalanceByDay(api::balance_by_date(DateGrouping::Day).await)
+                });
+                ctx.link().send_future(async move {
+                    BalanceMsg::UpdateBalanceByMonth(
+                        api::balance_by_date(DateGrouping::Month).await,
+                    )
                 });
             }
-            BalanceMsg::UpdateBalanceOverTime(balance_over_time) => {
-                self.balance_over_time = Some(Arc::new(balance_over_time));
+            BalanceMsg::UpdateBalanceByDay(balance_over_time) => {
+                self.balance_by_day = Some(Arc::new(balance_over_time));
+            }
+            BalanceMsg::UpdateBalanceByMonth(balance_over_time) => {
+                self.balance_by_month = Some(Arc::new(balance_over_time));
             }
         }
         true
     }
 
     fn view(&self, _ctx: &Context<Self>) -> Html {
-        let Some(balance_over_time) = &self.balance_over_time else {
+        let Some(balance_by_day) = &self.balance_by_day else {
             return html! {<></>};
         };
-        let db = balance_over_time.cumsum();
-        let ma = balance_over_time.rolling_average_cumsum(30);
-        log::info!("Data computed.");
+        let Some(balance_by_month) = &self.balance_by_month else {
+            return html! {<></>};
+        };
 
-        html! {<><h1>{"Balance"}</h1><BalanceOverTimeComponent daily_balance={db} ma={ma}/></>}
+        let db = balance_by_day.cumsum();
+        let ma = balance_by_day.rolling_average_cumsum(30);
+
+        let (months, monthly_incoming, monthly_outgoing, monthly_balance) =
+            balance_by_month.vectors();
+
+        html! {
+            <><h1>{"Balance"}</h1>
+            <BalanceOverTimeComponent daily_balance={db} ma={ma}/>
+            <BalanceByMonthComponent {months} {monthly_incoming} {monthly_outgoing} {monthly_balance}/>
+            </>
+        }
     }
 }
 
@@ -98,4 +119,48 @@ pub fn balance_component(BalancePlotProps { daily_balance, ma }: &BalancePlotPro
     );
 
     html! {<div id="plot-div"></div>}
+}
+
+#[derive(Properties, PartialEq)]
+pub struct BalanceBarPlotProps {
+    pub months: Vec<String>,
+    pub monthly_incoming: Vec<f64>,
+    pub monthly_outgoing: Vec<f64>,
+    pub monthly_balance: Vec<f64>,
+}
+
+#[function_component(BalanceByMonthComponent)]
+pub fn balance_by_month_component(
+    BalanceBarPlotProps {
+        months,
+        monthly_outgoing,
+        monthly_incoming,
+        monthly_balance,
+    }: &BalanceBarPlotProps,
+) -> Html {
+    let p = yew_hooks::use_async::<_, _, ()>({
+        let id = "bar-div";
+        let mut plot = Plot::new();
+        let out_trace = Bar::new(months.to_owned(), monthly_outgoing.to_owned());
+        plot.add_trace(out_trace);
+        let in_trace = Bar::new(months.to_owned(), monthly_incoming.to_owned());
+        plot.add_trace(in_trace);
+        let total_trace = Scatter::new(months.to_owned(), monthly_balance.to_owned());
+        plot.add_trace(total_trace);
+
+        async move {
+            plotly::bindings::new_plot(id, &plot).await;
+            Ok(())
+        }
+    });
+
+    use_effect_with_deps(
+        move |_| {
+            p.run();
+            || ()
+        },
+        (),
+    );
+
+    html! {<div id="bar-div"></div>}
 }

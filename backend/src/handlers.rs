@@ -6,7 +6,7 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use common::{AccountSummary, Config, ConfigOptions, ListOptions, Transaction};
+use common::{AccountSummary, BalanceByDay, Config, ConfigOptions, ListOptions, Transaction};
 
 use crate::AppState;
 
@@ -165,4 +165,18 @@ pub async fn delete_transaction(
         Ok(_) => StatusCode::OK,
         Err(_) => StatusCode::NOT_FOUND,
     }
+}
+
+pub async fn balance_by_day(State(app_state): State<Arc<AppState>>) -> Json<Vec<BalanceByDay>> {
+    let pool = app_state.pool.clone();
+    let balance = sqlx::query_as!(
+        BalanceByDay,
+        r#"SELECT date as "date!", SUM(amount) as "balance!"
+        FROM finances GROUP BY date
+        "#,
+    )
+    .fetch_all(&pool)
+    .await
+    .unwrap();
+    Json(balance)
 }

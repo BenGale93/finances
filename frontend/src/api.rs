@@ -1,4 +1,4 @@
-use common::{AccountSummary, ConfigOptions, Transaction};
+use common::{AccountSummary, BalanceByDay, ConfigOptions, Transaction};
 use reqwasm::http::Request;
 
 pub async fn get_config(key: &str) -> ConfigOptions {
@@ -8,6 +8,10 @@ pub async fn get_config(key: &str) -> ConfigOptions {
 
 pub async fn get_accounts() -> Vec<AccountSummary> {
     fetch_data("/api/accounts").await
+}
+
+pub async fn balance_over_time() -> Vec<BalanceByDay> {
+    fetch_data("/api/balanceByDay").await
 }
 
 pub async fn get_transactions(offset: usize, limit: usize) -> Vec<Transaction> {

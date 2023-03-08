@@ -9,6 +9,7 @@ edition = "2021"
 common = {workspace = true}
 yew = {workspace = true}
 yew-router = {workspace = true}
+yew-hooks = {workspace = true}
 reqwasm = {workspace = true}
 wasm-bindgen-futures = {workspace = true}
 serde = {workspace = true}
@@ -18,3 +19,4 @@ log = {workspace = true}
 wasm-logger = {workspace = true}
 chrono = {workspace = true}
 anyhow = {workspace = true}
+plotly = {workspace = true}

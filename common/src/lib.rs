@@ -108,3 +108,100 @@ impl Tags {
         level_3.contains(&l3_tag.to_owned())
     }
 }
+
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Default)]
+pub struct BalanceByDay {
+    pub date: NaiveDateTime,
+    pub balance: f64,
+}
+
+pub type BalancesByDay = [BalanceByDay];
+
+pub trait BalancesByDayExt {
+    fn cumsum(&self) -> BalanceOverTime;
+
+    fn rolling_average_cumsum(&self, window: usize) -> Option<BalanceOverTime>;
+}
+
+#[derive(PartialEq)]
+pub struct BalanceOverTime {
+    pub dates: Vec<NaiveDateTime>,
+    pub balances: Vec<f64>,
+}
+
+impl BalancesByDayExt for BalancesByDay {
+    fn cumsum(&self) -> BalanceOverTime {
+        let len = self.len();
+        let mut date = Vec::with_capacity(len);
+        let mut total = Vec::with_capacity(len);
+
+        for point in self {
+            date.push(point.date);
+            total.push(point.balance);
+        }
+
+        total.iter_mut().fold(0.0, |acc, x| {
+            *x += acc;
+            *x
+        });
+
+        BalanceOverTime {
+            dates: date,
+            balances: total,
+        }
+    }
+
+    fn rolling_average_cumsum(&self, window: usize) -> Option<BalanceOverTime> {
+        let BalanceOverTime {
+            dates: full_dates,
+            balances: cum_bal,
+        } = self.cumsum();
+        let length = self.len();
+        let window_index = window - 1;
+
+        if length <= window_index {
+            return None;
+        }
+
+        let mut rolling_averages: Vec<f64> = Vec::with_capacity(length);
+        let mut dates: Vec<NaiveDateTime> = Vec::with_capacity(length);
+
+        let mut sum = 0.0;
+
+        (0..=window_index).for_each(|x| {
+            let balance = &cum_bal[x];
+            sum += balance;
+        });
+
+        let first_moving_average_day = sum / window as f64;
+        rolling_averages.push(first_moving_average_day);
+        dates.push(full_dates[window_index]);
+
+        if length == window {
+            return Some(BalanceOverTime {
+                dates,
+                balances: rolling_averages,
+            });
+        }
+
+        let mut head_balance_index: usize = 0;
+        let mut tail_balance_index: usize = window;
+
+        while tail_balance_index != length {
+            let prev_rolling_average = &rolling_averages[head_balance_index];
+            let head_balance = cum_bal[head_balance_index] / window as f64;
+            let tail_balance = cum_bal[tail_balance_index] / window as f64;
+            let current_rolling_average = prev_rolling_average - head_balance + tail_balance;
+            rolling_averages.push(current_rolling_average);
+            dates.push(full_dates[tail_balance_index]);
+
+            head_balance_index += 1;
+            tail_balance_index += 1;
+        }
+
+        Some(BalanceOverTime {
+            dates,
+            balances: rolling_averages,
+        })
+    }
+}

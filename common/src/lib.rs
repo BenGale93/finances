@@ -2,10 +2,14 @@
 use std::{
     cmp::{Ord, Ordering},
     collections::HashMap,
+    fmt,
 };
 
-use chrono::NaiveDateTime;
-use serde::{Deserialize, Serialize};
+use chrono::{NaiveDate, NaiveDateTime};
+use serde::{
+    de::{self, IntoDeserializer},
+    Deserialize, Serialize,
+};
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Default)]
 pub struct Transaction {
@@ -232,4 +236,72 @@ pub enum DateGrouping {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BalanceTimeOptions {
     pub grouping: Option<DateGrouping>,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy)]
+pub struct BudgetProgress {
+    pub budget: f64,
+    pub spend: Option<f64>,
+}
+
+impl BudgetProgress {
+    pub fn progress(&self) -> f64 {
+        let Some(spend) = &self.spend else {
+            return f64::NAN;
+        };
+        spend / self.budget
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BudgetProgressOptions {
+    pub date: NaiveDate,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CategorySpendOptions {
+    pub date: NaiveDate,
+    #[serde(deserialize_with = "deserialize_stringified_list")]
+    pub l1_tags: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+pub struct CategorySpend {
+    pub name: String,
+    pub amount: Option<f64>,
+}
+
+pub fn deserialize_stringified_list<'de, D, I>(
+    deserializer: D,
+) -> std::result::Result<Vec<I>, D::Error>
+where
+    D: de::Deserializer<'de>,
+    I: de::DeserializeOwned,
+{
+    struct StringVecVisitor<I>(std::marker::PhantomData<I>);
+
+    impl<'de, I> de::Visitor<'de> for StringVecVisitor<I>
+    where
+        I: de::DeserializeOwned,
+    {
+        type Value = Vec<I>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a string containing a list")
+        }
+
+        fn visit_str<E>(self, v: &str) -> std::result::Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            let mut ids = Vec::new();
+            for id in v.split(',') {
+                let id = I::deserialize(id.into_deserializer())?;
+                ids.push(id);
+            }
+            Ok(ids)
+        }
+    }
+
+    deserializer.deserialize_any(StringVecVisitor(std::marker::PhantomData::<I>))
 }

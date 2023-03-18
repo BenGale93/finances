@@ -5,9 +5,11 @@ use yew_router::prelude::*;
 
 mod api;
 mod balance;
+mod budget;
 mod home;
 
 use balance::BalanceComponent;
+use budget::BudgetComponent;
 use home::HomeComponent;
 
 #[derive(Routable, PartialEq, Eq, Clone, Debug)]
@@ -16,6 +18,8 @@ pub enum Route {
     Home,
     #[at("/balance")]
     Balance,
+    #[at("/budget")]
+    Budget,
 }
 
 pub struct App {}
@@ -34,6 +38,7 @@ impl Component for App {
                 <div>
                     <Link<Route> to={Route::Home}>{"Home"}</Link<Route>>
                     <Link<Route> to={Route::Balance}>{"Balance History"}</Link<Route>>
+                    <Link<Route> to={Route::Budget}>{"Budget Progress"}</Link<Route>>
                 </div>
                 <main>
                     <Switch<Route> render={switch} />
@@ -50,6 +55,9 @@ fn switch(routes: Route) -> Html {
         }
         Route::Balance => {
             html! { <BalanceComponent /> }
+        }
+        Route::Budget => {
+            html! { <BudgetComponent /> }
         }
     }
 }

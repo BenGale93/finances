@@ -7,9 +7,11 @@ use axum::{
     Json,
 };
 use common::{
-    AccountSummary, BalanceByTime, BalanceTimeOptions, Config, ConfigOptions, DateGrouping,
-    ListOptions, Transaction,
+    AccountSummary, BalanceByTime, BalanceTimeOptions, BudgetProgress, BudgetProgressOptions,
+    CategorySpend, CategorySpendOptions, Config, ConfigOptions, DateGrouping, ListOptions,
+    Transaction,
 };
+use sqlx::{QueryBuilder, Row, Sqlite};
 
 use crate::AppState;
 
@@ -202,4 +204,68 @@ pub async fn balance_by_date(
         .unwrap(),
     };
     Json(balance)
+}
+
+pub async fn budget_progress(
+    Query(opts): Query<BudgetProgressOptions>,
+    State(app_state): State<Arc<AppState>>,
+) -> Json<BudgetProgress> {
+    let pool = app_state.pool.clone();
+    let config = app_state.config_db.lock().await;
+    let budget = config.budget();
+    let budget_items = config.budget_items();
+
+    let date = opts.date.format("%Y-%m").to_string();
+
+    let mut query_builder: QueryBuilder<Sqlite> = QueryBuilder::new(
+        r#"
+        SELECT ABS(SUM(amount)) as spend
+        FROM finances WHERE l1_tag in ("#,
+    );
+    let mut separated = query_builder.separated(", ");
+    for tag in budget_items.iter() {
+        separated.push_bind(tag);
+    }
+    separated.push_unseparated(r#") AND STRFTIME("%Y-%m", date) = "#);
+    separated.push_unseparated(format!("\"{date}\""));
+
+    let query = query_builder.build();
+    let row = query.fetch_one(&pool).await.unwrap();
+
+    Json(BudgetProgress {
+        budget,
+        spend: row.try_get("spend").unwrap(),
+    })
+}
+
+pub async fn category_spend(
+    Query(opts): Query<CategorySpendOptions>,
+    State(app_state): State<Arc<AppState>>,
+) -> Json<Vec<CategorySpend>> {
+    let pool = app_state.pool.clone();
+
+    let date = opts.date.format("%Y-%m").to_string();
+
+    let mut query_builder: QueryBuilder<Sqlite> = QueryBuilder::new(
+        r#"
+        SELECT l1_tag, ABS(SUM(amount)) as spend
+        FROM finances WHERE l1_tag in ("#,
+    );
+    let mut separated = query_builder.separated(", ");
+    for tag in opts.l1_tags.iter() {
+        separated.push_bind(tag);
+    }
+    separated.push_unseparated(r#") AND STRFTIME("%Y-%m", date) = "#);
+    separated.push_unseparated(format!("\"{date}\" GROUP BY l1_tag"));
+
+    let query = query_builder.build();
+    let rows = query
+        .map(|row: sqlx::sqlite::SqliteRow| CategorySpend {
+            name: row.try_get("l1_tag").unwrap(),
+            amount: row.try_get("spend").unwrap(),
+        })
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+    Json(rows)
 }

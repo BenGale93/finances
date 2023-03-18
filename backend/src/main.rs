@@ -49,7 +49,9 @@ async fn main() -> anyhow::Result<()> {
         )
         .route("/api/config/:key", get(handlers::get_config))
         .route("/api/accounts", get(handlers::get_account_totals))
-        .route("/api/balance/", get(handlers::balance_by_date))
+        .route("/api/balance", get(handlers::balance_by_date))
+        .route("/api/budget", get(handlers::budget_progress))
+        .route("/api/category", get(handlers::category_spend))
         .with_state(state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8081));

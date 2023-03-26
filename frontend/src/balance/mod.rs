@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use common::{BalanceByTime, BalanceOverTime, BalancesByDayExt, DateGrouping};
-use plotly::{Bar, Plot, Scatter};
+use plotly::{layout::BarMode, Bar, Layout, Plot, Scatter};
 use yew::prelude::*;
 
 use crate::api;
@@ -147,6 +147,10 @@ pub fn balance_by_month_component(
         plot.add_trace(in_trace);
         let total_trace = Scatter::new(months.to_owned(), monthly_balance.to_owned());
         plot.add_trace(total_trace);
+
+        let layout = Layout::new().bar_mode(BarMode::Overlay);
+
+        plot.set_layout(layout);
 
         async move {
             plotly::bindings::new_plot(id, &plot).await;

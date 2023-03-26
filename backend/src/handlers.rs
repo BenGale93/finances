@@ -184,7 +184,8 @@ pub async fn balance_by_date(
             SUM(CASE WHEN amount >= 0 THEN amount END) as "incoming!",
             SUM(CASE WHEN amount < 0 THEN amount END) as "outgoing!",
             SUM(amount) as "balance!"
-        FROM finances GROUP BY STRFTIME("%Y-%m-%d", date)
+        FROM finances WHERE l1_tag not in ("Transfers", "Balance", "Repayments")
+        GROUP BY STRFTIME("%Y-%m-%d", date)
         "#
         )
         .fetch_all(&pool)
@@ -196,7 +197,8 @@ pub async fn balance_by_date(
             SUM(CASE WHEN amount >= 0 THEN amount END) as "incoming!",
             SUM(CASE WHEN amount < 0 THEN amount END) as "outgoing!",
             SUM(amount) as "balance!"
-        FROM finances GROUP BY STRFTIME("%Y-%m", date)
+        FROM finances WHERE l1_tag not in ("Transfers", "Balance", "Repayments")
+        GROUP BY STRFTIME("%Y-%m", date)
         "#
         )
         .fetch_all(&pool)
@@ -249,7 +251,7 @@ pub async fn category_spend(
     let mut query_builder: QueryBuilder<Sqlite> = QueryBuilder::new(
         r#"
         SELECT l1_tag, ABS(SUM(amount)) as spend
-        FROM finances WHERE l1_tag in ("#,
+        FROM finances WHERE amount l1_tag in ("#,
     );
     let mut separated = query_builder.separated(", ");
     for tag in opts.l1_tags.iter() {

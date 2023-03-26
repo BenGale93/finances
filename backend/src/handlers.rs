@@ -251,7 +251,7 @@ pub async fn category_spend(
     let mut query_builder: QueryBuilder<Sqlite> = QueryBuilder::new(
         r#"
         SELECT l1_tag, ABS(SUM(amount)) as spend
-        FROM finances WHERE amount l1_tag in ("#,
+        FROM finances WHERE l1_tag in ("#,
     );
     let mut separated = query_builder.separated(", ");
     for tag in opts.l1_tags.iter() {

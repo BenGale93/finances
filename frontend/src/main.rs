@@ -7,10 +7,12 @@ mod api;
 mod balance;
 mod budget;
 mod home;
+mod monthly;
 
 use balance::BalanceComponent;
 use budget::BudgetComponent;
 use home::HomeComponent;
+use monthly::MonthlyComponent;
 
 #[derive(Routable, PartialEq, Eq, Clone, Debug)]
 pub enum Route {
@@ -20,6 +22,8 @@ pub enum Route {
     Balance,
     #[at("/budget")]
     Budget,
+    #[at("/monthly")]
+    Monthly,
 }
 
 pub struct App {}
@@ -39,6 +43,7 @@ impl Component for App {
                     <Link<Route> to={Route::Home}>{"Home"}</Link<Route>>
                     <Link<Route> to={Route::Balance}>{"Balance History"}</Link<Route>>
                     <Link<Route> to={Route::Budget}>{"Budget Progress"}</Link<Route>>
+                    <Link<Route> to={Route::Monthly}>{"Monthly  Summary"}</Link<Route>>
                 </div>
                 <main>
                     <Switch<Route> render={switch} />
@@ -58,6 +63,9 @@ fn switch(routes: Route) -> Html {
         }
         Route::Budget => {
             html! { <BudgetComponent /> }
+        }
+        Route::Monthly => {
+            html! { <MonthlyComponent /> }
         }
     }
 }

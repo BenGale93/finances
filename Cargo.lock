@@ -527,6 +527,7 @@ dependencies = [
  "web-sys",
  "yew",
  "yew-hooks",
+ "yew-plotly",
  "yew-router",
 ]
 
@@ -2534,6 +2535,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "yew-plotly"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "27e56cf456b3e023a71346f81cfc7fb37983de9f77110c438ef96ba88d14497e"
+dependencies = [
+ "plotly",
+ "wasm-bindgen",
+ "yew",
 ]
 
 [[package]]

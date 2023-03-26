@@ -20,3 +20,4 @@ wasm-logger = {workspace = true}
 chrono = {workspace = true}
 anyhow = {workspace = true}
 plotly = {workspace = true}
+yew-plotly = "0.2.0"

@@ -70,7 +70,7 @@ impl Component for BalanceComponent {
             balance_by_month.vectors();
 
         html! {
-            <><h1>{"Balance"}</h1>
+            <>
             <BalanceOverTimeComponent daily_balance={db} ma={ma}/>
             <BalanceByMonthComponent {months} {monthly_incoming} {monthly_outgoing} {monthly_balance}/>
             </>

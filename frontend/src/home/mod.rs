@@ -191,7 +191,7 @@ impl Component for HomeComponent {
         </div>
         <div class="row">
             <div class="column left">
-            <table>
+            <table class="accounts">
             <tr>
                 <th>{"Account"}</th>
                 <th>{"Amount"}</th>

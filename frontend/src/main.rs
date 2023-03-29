@@ -39,11 +39,11 @@ impl Component for App {
     fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
             <BrowserRouter>
-                <div>
-                    <Link<Route> to={Route::Home}>{"Home"}</Link<Route>>
-                    <Link<Route> to={Route::Balance}>{"Balance History"}</Link<Route>>
-                    <Link<Route> to={Route::Budget}>{"Budget Progress"}</Link<Route>>
-                    <Link<Route> to={Route::Monthly}>{"Monthly  Summary"}</Link<Route>>
+                <div class="topnav">
+                    <li><Link<Route> to={Route::Home}>{"Home"}</Link<Route>></li><br/>
+                    <li><Link<Route> to={Route::Balance}>{"Balance History"}</Link<Route>></li><br/>
+                    <li><Link<Route> to={Route::Budget}>{"Budget Progress"}</Link<Route>></li><br/>
+                    <li><Link<Route> to={Route::Monthly}>{"Monthly  Summary"}</Link<Route>></li><br/>
                 </div>
                 <main>
                     <Switch<Route> render={switch} />

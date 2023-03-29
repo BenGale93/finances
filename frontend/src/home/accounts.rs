@@ -14,8 +14,8 @@ fn account_component(AccountComponentProps { account }: &AccountComponentProps) 
     let total = format!("{amount:.2}");
     html! {
         <tr>
-            <td class="account">{account.name.to_owned()}</td>
-            <td class="date">{total}</td>
+            <td>{account.name.to_owned()}</td>
+            <td>{total}</td>
         </tr>
     }
 }

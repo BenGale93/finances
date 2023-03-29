@@ -6,6 +6,7 @@ use yew_router::prelude::*;
 mod api;
 mod balance;
 mod budget;
+mod components;
 mod home;
 mod monthly;
 

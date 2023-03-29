@@ -4,12 +4,10 @@ use chrono::{NaiveDate, Utc};
 use common::{
     BudgetProgress, BudgetProgressOptions, CategorySpend, CategorySpendOptions, ConfigOptions,
 };
-use plotly::{Bar, Plot};
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
-use yew_plotly::Plotly;
 
-use crate::api;
+use crate::{api, components::CategorySpendComponent};
 
 pub enum FieldMsg {
     Update(String),
@@ -175,27 +173,4 @@ impl Component for MonthlyComponent {
         </>
         }
     }
-}
-
-#[derive(Properties, PartialEq)]
-pub struct CategorySpendProps {
-    category_spend: Arc<Vec<CategorySpend>>,
-}
-
-#[function_component(CategorySpendComponent)]
-pub fn category_spend_component(
-    CategorySpendProps { category_spend }: &CategorySpendProps,
-) -> Html {
-    let mut categories = vec![];
-    let mut spend = vec![];
-    for c in category_spend.iter() {
-        categories.push(c.name.clone());
-        spend.push(c.amount);
-    }
-    log::info!("{:?}", spend);
-    let mut plot = Plot::new();
-    let spend_trace = Bar::new(categories, spend);
-    plot.add_trace(spend_trace);
-
-    html! { <Plotly plot={plot}/> }
 }

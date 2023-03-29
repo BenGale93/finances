@@ -3,6 +3,7 @@ use std::sync::Arc;
 use common::{BalanceByTime, BalanceOverTime, BalancesByDayExt, DateGrouping};
 use plotly::{layout::BarMode, Bar, Layout, Plot, Scatter};
 use yew::prelude::*;
+use yew_plotly::Plotly;
 
 use crate::api;
 
@@ -86,39 +87,29 @@ pub struct BalancePlotProps {
 
 #[function_component(BalanceOverTimeComponent)]
 pub fn balance_component(BalancePlotProps { daily_balance, ma }: &BalancePlotProps) -> Html {
-    let p = yew_hooks::use_async::<_, _, ()>({
-        let id = "plot-div";
-        let mut plot = Plot::new();
-        let trace = Scatter::new(
-            daily_balance.dates.to_owned(),
-            daily_balance.balances.to_owned(),
-        );
-        plot.add_trace(trace);
+    let mut plot = Plot::new();
+    let trace = Scatter::new(
+        daily_balance.dates.to_owned(),
+        daily_balance.balances.to_owned(),
+    )
+    .name("Balance");
+    plot.add_trace(trace);
 
-        match ma {
-            Some(ma_balance) => {
-                let ma_trace =
-                    Scatter::new(ma_balance.dates.to_owned(), ma_balance.balances.to_owned());
-                plot.add_trace(ma_trace);
-            }
-            None => (),
-        };
-
-        async move {
-            plotly::bindings::new_plot(id, &plot).await;
-            Ok(())
+    match ma {
+        Some(ma_balance) => {
+            let ma_trace =
+                Scatter::new(ma_balance.dates.to_owned(), ma_balance.balances.to_owned())
+                    .name("Rolling 30 day");
+            plot.add_trace(ma_trace);
         }
-    });
+        None => (),
+    };
 
-    use_effect_with_deps(
-        move |_| {
-            p.run();
-            || ()
-        },
-        (),
-    );
+    let layout = Layout::new().title("Daily Total Balance".into());
 
-    html! {<div id="plot-div"></div>}
+    plot.set_layout(layout);
+
+    html! { <Plotly plot={plot}/> }
 }
 
 #[derive(Properties, PartialEq)]
@@ -138,33 +129,22 @@ pub fn balance_by_month_component(
         monthly_balance,
     }: &BalanceBarPlotProps,
 ) -> Html {
-    let p = yew_hooks::use_async::<_, _, ()>({
-        let id = "bar-div";
-        let mut plot = Plot::new();
-        let out_trace = Bar::new(months.to_owned(), monthly_outgoing.to_owned());
-        plot.add_trace(out_trace);
-        let in_trace = Bar::new(months.to_owned(), monthly_incoming.to_owned());
-        plot.add_trace(in_trace);
-        let total_trace = Scatter::new(months.to_owned(), monthly_balance.to_owned());
-        plot.add_trace(total_trace);
+    let mut plot = Plot::new();
 
-        let layout = Layout::new().bar_mode(BarMode::Overlay);
+    let out_trace = Bar::new(months.to_owned(), monthly_outgoing.to_owned()).name("Outgoing");
+    plot.add_trace(out_trace);
 
-        plot.set_layout(layout);
+    let in_trace = Bar::new(months.to_owned(), monthly_incoming.to_owned()).name("Incoming");
+    plot.add_trace(in_trace);
 
-        async move {
-            plotly::bindings::new_plot(id, &plot).await;
-            Ok(())
-        }
-    });
+    let total_trace = Scatter::new(months.to_owned(), monthly_balance.to_owned()).name("Total");
+    plot.add_trace(total_trace);
 
-    use_effect_with_deps(
-        move |_| {
-            p.run();
-            || ()
-        },
-        (),
-    );
+    let layout = Layout::new()
+        .bar_mode(BarMode::Overlay)
+        .title("Monthly Incoming/Outgoing".into());
 
-    html! {<div id="bar-div"></div>}
+    plot.set_layout(layout);
+
+    html! { <Plotly plot={plot}/> }
 }

@@ -11,8 +11,9 @@ use plotly::{
     Bar, Layout, Plot,
 };
 use yew::prelude::*;
+use yew_plotly::Plotly;
 
-use crate::api;
+use crate::{api, components::CategorySpendComponent};
 
 pub enum BudgetMsg {
     NeedProgressData,
@@ -159,82 +160,28 @@ pub struct BudgetBarPlotProps {
 pub fn budget_progress_chart_component(
     BudgetBarPlotProps { budget_progress }: &BudgetBarPlotProps,
 ) -> Html {
-    let p = yew_hooks::use_async::<_, _, ()>({
-        let id = "budget-div";
-        let mut plot = Plot::new();
-        let spend_trace = Bar::new(vec!["Budget"], vec![budget_progress.spend.unwrap_or(0.0)]);
-        plot.add_trace(spend_trace);
+    let mut plot = Plot::new();
+    let spend_trace =
+        Bar::new(vec!["Budget"], vec![budget_progress.spend.unwrap_or(0.0)]).name("Budget spend");
+    plot.add_trace(spend_trace);
 
-        let mut layout = Layout::new();
+    let mut layout = Layout::new().title("Monthly Budget Spend Progress".into());
 
-        layout.add_shape(
-            Shape::new()
-                .shape_type(ShapeType::Line)
-                .x0(-0.5)
-                .x1(0.5)
-                .y0(budget_progress.budget)
-                .y1(budget_progress.budget)
-                .line(
-                    ShapeLine::new()
-                        .color(NamedColor::Red)
-                        .width(4.0)
-                        .dash(DashType::Dash),
-                ),
-        );
-
-        plot.set_layout(layout);
-
-        async move {
-            plotly::bindings::new_plot(id, &plot).await;
-            Ok(())
-        }
-    });
-
-    use_effect_with_deps(
-        move |_| {
-            p.run();
-            || ()
-        },
-        (),
+    layout.add_shape(
+        Shape::new()
+            .shape_type(ShapeType::Line)
+            .x0(-0.5)
+            .x1(0.5)
+            .y0(budget_progress.budget)
+            .y1(budget_progress.budget)
+            .line(
+                ShapeLine::new()
+                    .color(NamedColor::Red)
+                    .width(4.0)
+                    .dash(DashType::Dash),
+            ),
     );
 
-    html! {<div id="budget-div"></div>}
-}
-
-#[derive(Properties, PartialEq)]
-pub struct CategorySpendProps {
-    category_spend: Arc<Vec<CategorySpend>>,
-}
-
-#[function_component(CategorySpendComponent)]
-pub fn category_spend_component(
-    CategorySpendProps { category_spend }: &CategorySpendProps,
-) -> Html {
-    let mut categories = vec![];
-    let mut spend = vec![];
-    for c in category_spend.iter() {
-        categories.push(c.name.clone());
-        spend.push(c.amount);
-    }
-    let p = yew_hooks::use_async::<_, _, ()>({
-        let id = "category-div";
-        let mut plot = Plot::new();
-        let spend_trace = Bar::new(categories, spend);
-        plot.add_trace(spend_trace);
-
-        async move {
-            plotly::bindings::new_plot(id, &plot).await;
-            Ok(())
-        }
-    });
-
-    use_effect_with_deps(
-        move |_| {
-            p.run();
-            || ()
-        },
-        (),
-    );
-
-    html! {<div id="category-div"></div>}
+    plot.set_layout(layout);
+    html! { <Plotly plot={plot}/> }
 }

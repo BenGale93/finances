@@ -233,6 +233,12 @@ pub enum DateGrouping {
     Month,
 }
 
+impl DateGrouping {
+    pub fn url_encode(&self) -> String {
+        format!("grouping={self:?}")
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BalanceTimeOptions {
     pub grouping: Option<DateGrouping>,
@@ -258,11 +264,24 @@ pub struct BudgetProgressOptions {
     pub date: NaiveDate,
 }
 
+impl BudgetProgressOptions {
+    pub fn url_encode(&self) -> String {
+        format!("date={:?}", self.date)
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CategorySpendOptions {
     pub date: NaiveDate,
     #[serde(deserialize_with = "deserialize_stringified_list")]
     pub l1_tags: Vec<String>,
+}
+
+impl CategorySpendOptions {
+    pub fn url_encode(&self) -> String {
+        let l1_tags = self.l1_tags.join(",");
+        format!("date={:?}&l1_tags={}", self.date, l1_tags)
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]

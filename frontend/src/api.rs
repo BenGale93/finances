@@ -14,7 +14,7 @@ pub async fn get_accounts() -> Vec<AccountSummary> {
 }
 
 pub async fn balance_by_date(grouping: DateGrouping) -> Vec<BalanceByTime> {
-    fetch_data(&format!("/api/balance?grouping={grouping:?}")).await
+    fetch_data(&format!("/api/balance?{}", grouping.url_encode())).await
 }
 
 pub async fn get_transactions(offset: usize, limit: usize) -> Vec<Transaction> {
@@ -23,16 +23,11 @@ pub async fn get_transactions(offset: usize, limit: usize) -> Vec<Transaction> {
 }
 
 pub async fn budget_progress(options: &BudgetProgressOptions) -> BudgetProgress {
-    fetch_data(&format!("/api/budget?date={:?}", options.date)).await
+    fetch_data(&format!("/api/budget?{}", options.url_encode())).await
 }
 
 pub async fn category_spend(options: &CategorySpendOptions) -> Vec<CategorySpend> {
-    let l1_tags = &options.l1_tags.join(",");
-    fetch_data(&format!(
-        "/api/category?date={:?}&l1_tags={}",
-        options.date, l1_tags
-    ))
-    .await
+    fetch_data(&format!("/api/category?{}", options.url_encode())).await
 }
 
 pub async fn create_transaction(transaction: Transaction) {

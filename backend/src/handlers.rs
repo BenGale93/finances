@@ -144,7 +144,7 @@ pub async fn get_config(
         "budget" => ConfigOptions::Budget(config.budget()),
         "account_list" => ConfigOptions::AccountList(config.account_list().to_owned()),
         "period_items" => ConfigOptions::PeriodItems(config.period_items().to_owned()),
-        "budget_items" => ConfigOptions::BudgetItems(config.period_items().to_owned()),
+        "budget_items" => ConfigOptions::BudgetItems(config.budget_items().to_owned()),
         "tags" => ConfigOptions::Tags(config.tags().to_owned()),
         _ => return Err(StatusCode::NOT_FOUND),
     };

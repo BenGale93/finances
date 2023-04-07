@@ -12,11 +12,11 @@ pub enum UpdateFormMsg {
     Delete,
     Deleted,
     Success(UserTransaction),
-    UpdateAccount(String),
-    UpdateDate(String),
-    UpdateDescription(String),
-    UpdateAmount(String),
-    UpdateTags((String, String, String)),
+    UpdateAccount(AttrValue),
+    UpdateDate(AttrValue),
+    UpdateDescription(AttrValue),
+    UpdateAmount(AttrValue),
+    UpdateTags((AttrValue, AttrValue, AttrValue)),
 }
 
 #[derive(Clone, PartialEq, Properties)]

@@ -10,14 +10,14 @@ use yew::prelude::*;
 use crate::{api, components::CategorySpendComponent};
 
 pub enum FieldMsg {
-    Update(String),
+    Update(AttrValue),
 }
 
 #[derive(PartialEq, Properties)]
 pub struct DatePickerProps {
-    pub id: String,
-    pub given_date: String,
-    pub on_input: Callback<String>,
+    pub id: AttrValue,
+    pub given_date: AttrValue,
+    pub on_input: Callback<AttrValue>,
 }
 
 pub struct DatePicker;
@@ -48,7 +48,7 @@ impl Component for DatePicker {
                 onchange={ ctx.link().callback(|e: Event| {
                     let input = e.target_unchecked_into::<HtmlInputElement>();
                     log::info!("Date: {}", input.value());
-                    FieldMsg::Update(input.value())
+                    FieldMsg::Update(AttrValue::from(input.value()))
                 }) }
             />
         }
@@ -56,7 +56,7 @@ impl Component for DatePicker {
 }
 
 pub enum MonthlyMsg {
-    UpdateDate(String),
+    UpdateDate(AttrValue),
     NeedProgressData,
     UpdateProgressData(BudgetProgress),
     NeedCategorySpend,

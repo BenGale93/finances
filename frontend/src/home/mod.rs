@@ -8,7 +8,6 @@ use std::sync::Arc;
 use anyhow::anyhow;
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use common::{AccountSummary, Config, ConfigOptions, Transaction};
-use serde::{Deserialize, Serialize};
 use yew::prelude::*;
 
 use crate::{
@@ -212,22 +211,26 @@ impl Component for HomeComponent {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct UserTransaction {
     pub id: i64,
-    pub account: String,
-    pub date: String,
-    pub description: String,
-    pub amount: String,
-    pub l1_tag: String,
-    pub l2_tag: String,
-    pub l3_tag: String,
+    pub account: AttrValue,
+    pub date: AttrValue,
+    pub description: AttrValue,
+    pub amount: AttrValue,
+    pub l1_tag: AttrValue,
+    pub l2_tag: AttrValue,
+    pub l3_tag: AttrValue,
 }
 
 impl UserTransaction {
     pub fn to_transaction(&self, config: &Config) -> anyhow::Result<Transaction> {
         let id = self.id;
-        let account = if config.account_list().contains(&self.account) {
+        let account = if config
+            .account_list()
+            .iter()
+            .any(|a| a == self.account.as_str())
+        {
             self.account.to_owned()
         } else {
             return Err(anyhow!("Bad account {:?}.", &self.account));
@@ -245,16 +248,16 @@ impl UserTransaction {
             Err(_) => return Err(anyhow!("Bad amount {:?}", &self.amount)),
         };
 
-        let l1_tag: String;
-        let l2_tag: String;
-        let l3_tag: String;
+        let l1_tag: AttrValue;
+        let l2_tag: AttrValue;
+        let l3_tag: AttrValue;
         if config
             .tags()
             .verify_tags(&self.l1_tag, &self.l2_tag, &self.l3_tag)
         {
-            l1_tag = self.l1_tag.to_owned();
-            l2_tag = self.l2_tag.to_owned();
-            l3_tag = self.l3_tag.to_owned();
+            l1_tag = self.l1_tag.clone();
+            l2_tag = self.l2_tag.clone();
+            l3_tag = self.l3_tag.clone();
         } else {
             return Err(anyhow!(
                 "Bad tags: {:?}, {:?}, {:?}.",
@@ -266,25 +269,25 @@ impl UserTransaction {
 
         Ok(Transaction {
             id,
-            account,
+            account: account.to_string(),
             date,
-            description,
+            description: description.to_string(),
             amount,
-            l1_tag,
-            l2_tag,
-            l3_tag,
+            l1_tag: l1_tag.to_string(),
+            l2_tag: l2_tag.to_string(),
+            l3_tag: l3_tag.to_string(),
         })
     }
 
     pub fn from_transaction(transaction: &Transaction) -> Self {
         let id = transaction.id;
-        let account = transaction.account.to_owned();
-        let date = transaction.date.date().to_string();
-        let description = transaction.description.to_owned();
-        let amount = transaction.amount.to_string();
-        let l1_tag = transaction.l1_tag.to_owned();
-        let l2_tag = transaction.l2_tag.to_owned();
-        let l3_tag = transaction.l3_tag.to_owned();
+        let account = AttrValue::from(transaction.account.to_owned());
+        let date = AttrValue::from(transaction.date.date().to_string());
+        let description = AttrValue::from(transaction.description.to_owned());
+        let amount = AttrValue::from(transaction.amount.to_string());
+        let l1_tag = AttrValue::from(transaction.l1_tag.to_owned());
+        let l2_tag = AttrValue::from(transaction.l2_tag.to_owned());
+        let l3_tag = AttrValue::from(transaction.l3_tag.to_owned());
 
         Self {
             id,

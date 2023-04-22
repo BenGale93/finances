@@ -184,7 +184,7 @@ pub async fn balance_by_date(
             SUM(CASE WHEN amount >= 0 THEN amount END) as "incoming!",
             SUM(CASE WHEN amount < 0 THEN amount END) as "outgoing!",
             SUM(amount) as "balance!"
-        FROM finances WHERE l1_tag not in ("Transfers", "Balance", "Repayments")
+        FROM finances WHERE l1_tag != "Repayments" AND l2_tag != "Transfers"
         GROUP BY STRFTIME("%Y-%m-%d", date)
         "#
         )
